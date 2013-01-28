@@ -1,0 +1,3 @@
+<?php
+class XF_Controller_Router_Rewrite_Exception extends XF_Controller_Router_Exception
+{}

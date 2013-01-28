@@ -1,0 +1,42 @@
+8
+
+dir
+2
+https://secache.googlecode.com/svn/trunk/secache
+https://secache.googlecode.com/svn
+
+
+
+2009-02-14T14:54:08.038171Z
+2
+flaboy.cn
+
+
+svn:special svn:externals svn:needs-lock
+
+secache.php
+file
+3
+
+
+
+2009-02-14T15:00:44.000000Z
+cfc0034d69dc6eca42f60c4226b6bcae
+2009-02-14T15:00:41.102441Z
+3
+flaboy.cn
+has-props
+
+secache_no_flock.php
+file
+3
+
+
+
+2009-02-14T14:33:32.000000Z
+9d908ccc30e7d01d95f5a5e8ec0ad5c1
+2009-02-14T15:00:41.102441Z
+3
+flaboy.cn
+has-props
+
