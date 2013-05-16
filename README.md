@@ -86,6 +86,8 @@ xframework
   - 数据分页器
 
 - 视图模板(View)
+  - 路径约定
+  - 模板语法
   - 布局
   - Header
  
