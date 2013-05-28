@@ -239,7 +239,7 @@ class XF_Controller_Plugin_Manage
 				if ($m->name == 'exception' && $m->class == $selfCalssName )
 				{
 					$emptyPlugin = false;
-					$plugin->exception($request, $e);
+					$plugin->exception($request);
 				}
 			}
 				

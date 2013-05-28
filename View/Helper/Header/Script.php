@@ -77,16 +77,6 @@ class XF_View_Helper_Header_Script
 		return $this->_scripts;
 	}
 	
-	/**
-	 * 清除所有的Script信息
-	 * @access public
-	 * @return XF_View_Helper_Header_Script
-	 */
-	public function clearAll()
-	{
-		$this->_scripts = null;
-		return $this;
-	}
 	
 	/**
 	 * 获取Scripts

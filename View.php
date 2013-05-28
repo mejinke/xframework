@@ -217,7 +217,7 @@ class XF_View
 	/**
 	 * Meta
 	 * @param string $var
-	 * @return XF_View_Helper_Header_Meta
+	 * @return XF_View_Helper_Header_Ｍeta
 	 */
 	public function headMeta($var = null)
 	{

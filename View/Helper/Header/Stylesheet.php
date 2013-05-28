@@ -78,17 +78,6 @@ class XF_View_Helper_Header_Stylesheet
 	}
 	
 	/**
-	 * 清除所有的Stylesheet信息
-	 * @access public
-	 * @return XF_View_Helper_Header_Stylesheet
-	 */
-	public function clearAll()
-	{
-		$this->_stylesheets = null;
-		return $this;
-	}
-	
-	/**
 	 * 获取stylesheets
 	 * @access public
 	 * @return string
