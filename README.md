@@ -3,28 +3,28 @@ xframework
 一个基于php5面向对象的web框架。目前已在实际项目中使用，节约了我很多的时间；现在通过github分享给大家。有兴趣的同学可以看看，
 文档会慢慢的完善！
 
-###项目结构
-
+###标准的项目结构
+```javascript
   application
-    bootstraps
-    configs
-    functions
-    layouts
-    controllers
-    models
-    modules
-      appName1
-        controllers
-        models
-        views
-      appName2
-      ....
-    plugins
-    views
+   |-bootstraps
+   |-configs
+   |-functions
+   |-layouts
+   |-controllers
+   |-models
+   |-modules
+   | |-appName1
+   | | |-controllers
+   | | |-models
+   | | |-views
+   | |-appName2
+   | |....
+   |-plugins
+   |-views
   public
   temp
-  xframework
- 
+  xframework //框架
+```
 ###功能描述
 - 特点
   - 多模块
