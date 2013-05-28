@@ -13,12 +13,12 @@ xframework
    |-controllers
    |-models
    |-modules
-   | |-appName1
-   | | |-controllers
-   | | |-models
-   | | |-views
-   | |-appName2
-   | |....
+   |  |-appName1
+   |  |  |-controllers
+   |  |  |-models
+   |  |  |-views
+   |  |-appName2
+   |  |....
    |-plugins
    |-views
   public
