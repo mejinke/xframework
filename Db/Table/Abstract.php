@@ -436,7 +436,7 @@ abstract class XF_Db_Table_Abstract
 	 * @param bool $oneToMany 是否为一对多，如果是一对多，获取出来的资料将是一个数组列表 [默认为false]
 	 * @return XF_Db_Table_Abstract
 	 */
-	public  function setFieldAssociated($name, $field, $tableName, $associateFieldName, $autoAssociated = false, $oneToMany = false)
+	protected function _setFieldAssociated($name, $field, $tableName, $associateFieldName, $autoAssociated = false, $oneToMany = false)
 	{
 		if (is_object($tableName))
 			$tableName = get_class($tableName);

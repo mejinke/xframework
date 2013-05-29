@@ -881,15 +881,16 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 				if (array_key_exists($key, $data) && $data[$key] === $val)
 					unset($data[$key]);
 			}
-		}
-		
+		}		
+			
 		if ($data == null) return true;
-		
+
 		///防止直接调用此方法所造成的字段错误
 		$tmp = debug_backtrace();
 		if (!isset($tmp[0]['file']) || strpos($tmp[0]['file'], 'Db/Table/Abstract.php') == false)
 			$data = $this->_db_table->getFormData($data);
-			
+
+		
 		$this->_db_drive_connect->showQuery($this->_show_query);
 		$result = $this->_db_drive_connect->update($this->_db_table->getTableName(), $data, $this->_adv_where);
 		$this->_clearProperty();
