@@ -154,6 +154,15 @@ class XF_Controller_Front
 	}
 
 	/**
+	 * 获取当前转发次数
+	 * @return int
+	 */
+	public function getDispathCount()
+	{
+		return $this->_dispath_count;
+	}
+	
+	/**
 	 * 转发控制器
 	 * @param XF_Controller_Request_Abstract $request
 	 * @param bool $runRouter 重新运行路由解析 默认为true
@@ -166,7 +175,7 @@ class XF_Controller_Front
 		
 		if ($request == null)
 			$request = $this->_request;
-			
+
 		if ($this->_dispath_count == 1)
 		{
 			$this->_plugin_manage->routeStartup($request);
@@ -182,7 +191,7 @@ class XF_Controller_Front
 		//加载控制器
 		$this->getModuleDir();
 		$controllerName = NULL;
-
+		
 		if (ucfirst($request->getModule()) !='Default')
 		{
 			$controllerName = $request->getModule().'_';

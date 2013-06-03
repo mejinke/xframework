@@ -57,18 +57,15 @@ class XF_Application_Bootstrap
 	public function run()
 	{
 		$this->runStartup();
-		
 		if (!empty($_GET['xsession_id']))
 		{
 			$session_id = XF_Functions::authCode(urlencode($_GET['xsession_id']), 'DECODE');
-			if ($session_id !=''){
+			if ($session_id !='')
 				session_id($session_id);
-				session_start();
-			}	
 		}
-		//if(session_id() == '')
-			session_start();
+
+		session_start();
 		$this->_loadInit();
-	    XF_Controller_Front::getInstance()->dispatch();
+		XF_Controller_Front::getInstance()->dispatch();
 	}
 }

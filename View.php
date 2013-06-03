@@ -184,7 +184,14 @@ class XF_View
 		ob_start();
 		require $file;
 		$content = ob_get_contents();
-		ob_end_clean();
+		ob_clean();
+		
+		//清除BOM
+		$charset[1] = substr($content, 0, 1);
+		$charset[2] = substr($content, 1, 1);
+		$charset[3] = substr($content, 2, 1);
+		if (ord($charset[1]) == 239 && ord($charset[2]) == 187 && ord($charset[3]) == 191) 
+			$content = substr($content, 3);
 		return $content;
 	}
 	
@@ -197,8 +204,7 @@ class XF_View
 	 */
 	public function getTemplateStartLocation()
 	{
-		if ($this->_template_folder == '')
-			$this->_template_folder = XF_Controller_Front::getInstance()->getModuleDir().'/views/'.XF_Config::getInstance()->getViewType();
+		$this->_template_folder = XF_Controller_Front::getInstance()->getModuleDir().'/views/'.XF_Config::getInstance()->getViewType();
 		return $this->_template_folder;
 	}
 
