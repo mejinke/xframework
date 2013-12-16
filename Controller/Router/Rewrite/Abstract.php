@@ -18,7 +18,7 @@ abstract class XF_Controller_Router_Rewrite_Abstract implements XF_Controller_Ro
 	 * 是否匹配成功
 	 * @var bool
 	 */
-	protected $_matchStatus = FALSE;
+	protected $_match_status = FALSE;
 	
 	/**
 	 * 正则表达式
@@ -30,19 +30,19 @@ abstract class XF_Controller_Router_Rewrite_Abstract implements XF_Controller_Ro
 	 * 对应的module controller action 数组
 	 * @var array
 	 */
-	protected $_mAarray;
+	protected $_ma_array;
 	
 	/**
 	 * 对应的参数数组
 	 * @var array
 	 */
-	protected $_paramsArray;
+	protected $_params_array;
 	
 	/**
 	 * 重定向配置
 	 * @var array
 	 */
-	protected $_redirectArray;
+	protected $_redirect_array;
 	
 	/**
 	 * 初始化
@@ -59,7 +59,7 @@ abstract class XF_Controller_Router_Rewrite_Abstract implements XF_Controller_Ro
 	 */
 	public function isMatch()
 	{
-		return $this->_matchStatus;
+		return $this->_match_status;
 	}
 	
 	/**

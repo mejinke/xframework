@@ -40,14 +40,22 @@ class XF_Cache_Memcache extends XF_Cache_Abstract
 	{
 		if (self::$_instance == null)
 		{
+			//是否存在memcache缓存服务器配置
+			$servers = XF_Config::getInstance()->getMemcaches();
+			if (!isset($servers[0]))
+				throw new XF_Cache_Exception('Memcache server config is empty');
+			$server = explode(':', $servers[0]);
+				
 			//检测是否安装memcache PHP扩展
 			if (!class_exists('Memcache', FALSE))
 				throw new XF_Cache_Exception('Memcache PECL expands has not installed or has begun using');
 			self::$_instance = new self();
 			self::$_instance->_memcache = new Memcache;
-			self::$_instance->_memcache->connect( $server[0], $server[1] );
+			$status = self::$_instance->_memcache->connect($server[0], $server[1]);
+			if ($status == FALSE)
+				throw new XF_Cache_Exception('Memcache connect failure');
 		}
-		return self::$instance;
+		return self::$_instance;
 	}
 	
 	/**
@@ -66,29 +74,6 @@ class XF_Cache_Memcache extends XF_Cache_Abstract
 	}
 	
 	/**
-	 * 返回一个由服务器扩展静态信息二维数组，失败时返回 FALSE 
-	 * @return array | false
-	 */
-	public function getExtendedStats()
-	{
-		return $this->_memcache->getExtendedStats();
-	}
-	
-	/**
-	 * 返回一个服务器静态信息数组，失败时返回 FALSE 
-	 * @param string $host
-	 * @param int $port 可选
-	 * @return array | false
-	 */
-	public function getServerStatus($host, $port = null)
-	{
-		if ($port == null)
-			return $this->_memcache->getServerStatus($host);
-		return $this->_memcache->getServerStatus($host, $port);
-	}
-	
-	
-	/**
 	 * 读取缓存内容
 	 * @access public
 	 * @param string $key 缓存KEY
@@ -96,9 +81,22 @@ class XF_Cache_Memcache extends XF_Cache_Abstract
 	 */
 	public function read($key)
 	{
-		if($value = $this->_memcache->get($key))
-			return unserialize($value);
-		return XF_CACHE_EMPTY;
+		$start_time = microtime(true);
+		
+		//是否强制清除缓存？
+		if (XF_DataPool::getInstance()->get('clearCache') === true)
+		{
+			return XF_CACHE_EMPTY;
+		}
+		
+		$data = XF_CACHE_EMPTY;
+		$value = $this->_memcache->get($key);
+		if ($value !== false)
+			$data = $value;
+		
+		$this->_addReadDebug($start_time, 'Memcache');
+			
+		return $data;
 	}
 	
 	/**
@@ -110,7 +108,7 @@ class XF_Cache_Memcache extends XF_Cache_Abstract
 	 */
 	public function add($key, $value)
 	{
-		$value = serialize($value);
+		if ($this->_cache_time == 0 ) return false;
 		$this->_memcache->set($key, $value, false, $this->_cache_time * 60);
 		return $this;
 	}

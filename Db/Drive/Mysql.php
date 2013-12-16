@@ -36,10 +36,10 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 		if ($this->_db_config instanceof XF_Db_Config_Interface && $this->_db_connection == null)
 		{
 			if (!function_exists('mysql_connect'))
-				throw new XF_Db_Drive_Exception('Mysql的PECL扩展尚未安装或启用', 500);
+				throw new XF_Db_Drive_Exception('Mysql的PECL扩展尚未安装或启用');
 			$this->_db_connection = @mysql_connect( $this->_db_config->getHost(), $this->_db_config->getAccount(), $this->_db_config->getPassword() ); 
 			if (!$this->_db_connection)
-				throw new XF_Db_Drive_Exception('无法连接Mysql服务器：'.$this->_dbConfig->getHost(), 500);
+				throw new XF_Db_Drive_Exception('无法连接Mysql服务器('.$this->_db_config->getHost().')  Message: '.mysql_error());
 			else
 				mysql_query("set names '".$this->_db_config->getChar()."'", $this->_db_connection);
 		}
@@ -74,7 +74,7 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			//过滤非标量
 			if(is_scalar($val))
 			{
-				if ($val === '$null')
+				if ($val === '$NULL')
 					$values[] = "NULL";
 				else
 					$values[] = "'".XF_Db_Tool::escape($val)."'";
@@ -103,15 +103,20 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			//过滤非标量
 			if(is_scalar($val))
 			{
-				if ($val === '$null')
+				if ($val === '$NULL')
 					$set[] = '`'.$key."`= NULL";
+				elseif (strpos($val, '$PK') === 0)
+				{
+					$val = substr($val, 3);
+					$set[] = '`'.$key."`=$val";
+				}
 				else
 					$set[] = '`'.$key."`='".XF_Db_Tool::escape($val)."'";
 			}
 		}
 		if(empty($set))
 			return false;
-		$query = 'UPDATE  `'.$this->_db_name.'`.`'.$table.'`   SET '.implode(',',$set).'  '.$where;
+		$query = 'UPDATE `'.$this->_db_name.'`.`'.$table.'` SET '.implode(',',$set).' '.$where;
 		return $this->execute($query);
 	}
 	
@@ -187,20 +192,20 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 		if ($this->_show_query === TRUE)
 			echo $query.'<br/>';
 
-		$start = microtime(true);
+		$start = XF_Functions::getCurrentTime();
 		$this->_connection();
 		$result = mysql_query($query, $this->_db_connection);
-		$end = microtime(true);
+		$end = XF_Functions::getCurrentTime();
 		
 		//是否记录debug信息
 		if (XF_Config::getInstance()->getSaveDebug())
 		{
-			$query.=' '.sprintf ("%01.5f",($end-$start)).'s';
-			if ($end-$start > 0.5)
-				$query = '<font style="color:red">'.$query.'</font>';
-			XF_DataPool::getInstance()->addList('Querys', $query);
+			$str = $query.' '.sprintf ("%.5f",($end-$start)).'s';
+			if ($end-$start > 0.3)
+				$str = '<font style="color:red">'.$str.'</font>';
+			XF_DataPool::getInstance()->addList('Querys', $str);
 			$count = XF_DataPool::getInstance()->get('QueryTimeCount', 0);
-			XF_DataPool::getInstance()->add('QueryTimeCount', sprintf ("%01.5f",$count+($end-$start>0 ? $end-$start:0)));
+			XF_DataPool::getInstance()->add('QueryTimeCount', sprintf ("%.5f",$count+($end-$start>0 ? $end-$start:0)));
 		}
 		
 		if (mysql_error($this->_db_connection) !='')

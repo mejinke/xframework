@@ -1,5 +1,4 @@
 <?php
-if(!defined('APPLICATION_PATH'))die('Cannot access the file !');
 /**
  * 
  * -+-----------------------------------
@@ -52,14 +51,23 @@ class XF_Db_Table_Select_Mysql extends XF_Db_Table_Select_Abstract
 	 * 追加查询条件
 	 * @access public
 	 * @param string | Array $var
+	 * @param string $where_type 条件类别 [ AND、OR  默认 AND]
 	 * @return XF_Db_Table_Select_Mysql
 	 */
-	public function appendWhere($var)
+	public function appendWhere($var, $where_type = 'AND')
 	{
 		if (XF_Functions::isEmpty($this->_adv_where))
 			$this->setWhere($var);
 		else if (XF_Functions::isEmpty($var) === false)	
-			$this->_adv_where .= ' AND '.XF_Db_Tool::whereFormat($var);
+		{
+			if ($where_type == 'AND') 
+				$this->_adv_where .= ' AND '.XF_Db_Tool::whereFormat($var);
+			elseif ($where_type == 'OR')
+			{
+				$this->_adv_where = XF_String::str_replace_once(' WHERE ', '', $this->_adv_where);
+				$this->_adv_where = ' WHERE ('.$this->_adv_where.') OR ('.XF_Db_Tool::whereFormat($var).')';
+			} 
+		}
 		return $this;
 	}
 	

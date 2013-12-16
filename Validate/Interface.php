@@ -5,13 +5,13 @@
  * |PHP5 Framework - 2011
  * |Web Site: www.iblue.cc
  * |E-mail: mejinke@gmail.com
- * |Date: 2011-12-16
+ * |Date: 2013-11-19
  * -+-----------------------------------
  *
  * @desc 数据验证接口
  * @author jingke
  */
-interface XF_String_Validate_Interface
+interface XF_Validate_Interface
 {
 	/**
 	 * 校验数据

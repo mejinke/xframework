@@ -13,24 +13,40 @@
  */
 class XF_Application_Bootstrap
 {
-
-	/**
-	 * application
-	 * @var XF_Application
+	/** 
+	 * 是否自动按顺序执行init方法?
+	 * @var bool
 	 */
-	protected $_application;
+	private $_auto_call = TRUE;
 	
 	/**
-	 * 构造函数
-	 * @param XF_Application $application
+	 * 关闭自动执行init方法
+	 * @access protected
+	 * @return void
 	 */
-	public function __construct(XF_Application $application)
+	protected function _closeAutoCall()
 	{
-		$this->_application = $application;
+		$this->_auto_call = FALSE;	
+	}
+	
+	/**
+	 * 当前请求域名是否合法
+	 * @access private
+	 * @return void
+	 */
+	private function checkDomain()
+	{
+		$domain = XF_Config::getInstance()->getDomain();
+		if (empty($domain)) return;
+		if (strpos($_SERVER['HTTP_HOST'], $domain) === FALSE)
+		{
+			throw new XF_Application_Exception('当前请求的域名不正确');
+		}
 	}
 	
 	/**
 	 * 调用用户自定义的init函数
+	 * @access private
 	 * @return void
 	 */
 	private function _loadInit()
@@ -39,6 +55,8 @@ class XF_Application_Bootstrap
 		$methods = $ref->getMethods();
 		foreach ($methods as $m)
 		{
+			if ($this->_auto_call === FALSE)
+				break;
 			if (strpos($m->name, 'init') === 0)
 				$this->{$m->name}();
 		}
@@ -46,26 +64,29 @@ class XF_Application_Bootstrap
 
 	/**
 	 * 运行启动器前执行接口
+	 * @access public
 	 * @return void
 	 */
-	public function runStartup(){}
+	protected function runStartup(){}
 	
 	/**
 	 * 运行启动器
+	 * @access public
 	 * @return void
 	 */
 	public function run()
 	{
+		$this->checkDomain();
 		$this->runStartup();
-		if (!empty($_GET['xsession_id']))
+		if (!empty($_GET['xsessid']))
 		{
-			$session_id = XF_Functions::authCode(urlencode($_GET['xsession_id']), 'DECODE');
+			$session_id = XF_Functions::authCode(urlencode($_GET['xsessid']), 'DECODE');
 			if ($session_id !='')
 				session_id($session_id);
 		}
-
 		session_start();
+		header("Content-type:text/html;charset=utf-8");
 		$this->_loadInit();
-		XF_Controller_Front::getInstance()->dispatch();
+	    XF_Controller_Front::getInstance()->init()->dispatch();
 	}
 }

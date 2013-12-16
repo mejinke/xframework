@@ -11,7 +11,7 @@
  * @desc IP地址验证
  * @author jingke
  */
-class XF_String_Validate_Ip implements XF_String_Validate_Interface   
+class XF_String_Validate_Ip implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

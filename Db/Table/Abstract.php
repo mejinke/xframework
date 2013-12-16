@@ -103,17 +103,20 @@ abstract class XF_Db_Table_Abstract
 		{ 
 			if ($name != $this->getPrimaryKey())
 			{
-				if (isset($this->_field_change_array[$name]))
+				if (strpos($name, '_all_data_count') === false)
 				{
-					$this->_field_change_array[$name]['count']++;
-					$this->_field_change_array[$name]['log'][] = $value;	
+					if (isset($this->_field_change_array[$name]))
+					{
+						$this->_field_change_array[$name]['count']++;
+						$this->_field_change_array[$name]['log'][] = $value;	
+					}
+					else
+					{
+						$this->_field_change_array[$name]['count'] = 1;
+						$this->_field_change_array[$name]['log'][] = $value;
+					}
 				}
-				else
-				{
-					$this->_field_change_array[$name]['count'] = 1;
-					$this->_field_change_array[$name]['log'][] = $value;
-				}
-				
+
 				if ($value === NULL)
 				{
 					unset($this->_result_array[$name]); 
@@ -218,7 +221,7 @@ abstract class XF_Db_Table_Abstract
 		
 		$tmp = debug_backtrace();
 		$fromDBTable = false;
-		if (isset($tmp[0]['file']) && strpos($tmp[0]['file'], 'Db/Table/Select/Abstract.php'))
+		if ($tmp[1]['class'] == 'XF_Db_Table_Select_Abstract' && $tmp[1]['function'] == '_packing')
 			$fromDBTable = true;
  
 		foreach ($var as $key => $val)
@@ -376,11 +379,11 @@ abstract class XF_Db_Table_Abstract
 		$methods = false;
 		if (is_array($this->_init_auto_execute_methods))
 		{
-			foreach ($this->_init_auto_execute_methods as $m)
+			foreach ($this->_init_auto_execute_methods as $methodName => $m)
 			{
-				$tmp = explode('$', $m);
+				$tmp = explode('$', $methodName);
 				if (count($tmp) == 2 && $tmp[1] == $associateName)
-					$methods[] = substr($tmp[0], 4);
+					$methods[] = $m;
 			}
 		}
 		return $methods;
@@ -388,24 +391,39 @@ abstract class XF_Db_Table_Abstract
 	
 	
 	/**
-	 * 添加当前对象获得数据后需要执行的方法
+	 * 添加当前对象获得数据后需要执行的方法[$associateName后面可以添加需要传递给自定义init方法的参数]
 	 * @param string $methodName 当前对象的方法名，以init开始；例：initData 传值应该为:Data ;属性必须是public
 	 * @param string $associateName 是否设置为关联对象的执行方法，默认为null为当前表对象
 	 * @throws XF_Exception
 	 * @return XF_Db_Table_Abstract
 	 */
 	public function addInitAutoExecuteMethod($methodName, $associateName = null)
-	{
+	{	
+		if (strpos($methodName, 'init') ===0)
+			$methodName = substr($methodName, 4);
 		if ($associateName === null && !method_exists($this, 'init'.$methodName))
-			throw new XF_Db_Table_Exception('自动执行方法(init'.$methodName.') 不存在', 1000);
+			throw new XF_Db_Table_Exception('自动执行方法(init'.$methodName.') 不存在');
 		if ($methodName == 'FromAssociateAfter')
-			throw new XF_Db_Table_Exception('无法添加 FromAssociateAfter 方法', 1000);
-			
+			throw new XF_Db_Table_Exception('无法添加 FromAssociateAfter 方法');
+
+		$trueMethodName = 'init'.$methodName;
 		//用于区分是否要执行当前对象
 		if ($associateName !== null )
 			$methodName .= '$'.$associateName;
-			
-		$this->_init_auto_execute_methods['init'.$methodName] = 'init'.$methodName;
+
+		$args = func_get_args();
+		if (count($args) > 2)
+		{
+			unset($args[0]);
+			unset($args[1]);
+			$args = array_values($args);
+		}
+		else 
+			$args = NULL;	
+		$this->_init_auto_execute_methods['init'.$methodName] = array(
+			'method' => $trueMethodName,
+			'params' => $args
+		);
 		return $this;
 	}
 	
@@ -539,6 +557,7 @@ abstract class XF_Db_Table_Abstract
 		return $this->_field_associateds;
 	}
 	
+	
 	/**
 	 * 获取字段关联对象自己的关联设置列表
 	 * @return array
@@ -551,7 +570,7 @@ abstract class XF_Db_Table_Abstract
 	/**
 	 * 关联完所有资料后执行
 	 */
-	public function initFromAssociateAfter()
+	public function initAssociatedAfter()
 	{}
 	
 	/**
@@ -628,7 +647,13 @@ abstract class XF_Db_Table_Abstract
 	   	{
 	   		foreach ($methods as $m)
 	   		{
-	   			$table->addInitAutoExecuteMethod($m);
+	   			if ($m['params'] !== NULL)
+   				{
+   					array_unshift($m['params'], $m['method'], NULL);
+   					call_user_func_array(array($table, 'addInitAutoExecuteMethod'), $m['params']);
+   				}
+   				else
+   					$table->addInitAutoExecuteMethod($m['method']);
 	   		}
 	   	}
 	   	
@@ -686,9 +711,8 @@ abstract class XF_Db_Table_Abstract
 	 * @param bool $allowPrimaryKey 是否允许插入主键值？默认为false
 	 * @return mixed
 	 */
-	public function insert($validate = true, $allowPrimaryKey = FALSE)
+	public function insert($validate = true, $allowPrimaryKey = false)
 	{
-		
 		$this->getFormData($this->toArray(), false);
 		$this->_validateAllData($validate);
 		return $this->getTableSelect()->insert($allowPrimaryKey);
@@ -701,9 +725,13 @@ abstract class XF_Db_Table_Abstract
 	 */
 	public function update($validate = true)
 	{	
+		$data = $this->_result_array;
 		$this->getFormData($this->toArray(), true);
-		$this->_validateAllData($validate);
-		return $this->getTableSelect()->update();
+		$this->_validateAllData($validate, false);
+		$status = $this->getTableSelect()->update();
+		if ($data != NULL)
+			$this->_result_array = $data;
+		return $status;
 	}
 	
 	/**
@@ -718,16 +746,31 @@ abstract class XF_Db_Table_Abstract
 	/**
 	 * 进行数据验证
 	 * @param bool $validate 是否验证? 默认为true
+	 * @param bool $is_insert 当前验证的数据是否准备插入数据库？只有是插入数据库操作，所有的required强制生效
 	 * @throws XF_Db_Table_Exception
 	 * @return bool
 	 */
-	protected function _validateAllData($validate = true)
+	protected function _validateAllData($validate = true, $is_insert = true)
 	{
 		if ($validate !== true) return true;
 		if ($this->_field_validate_rule == null) return true;
 		//验证
 		$data = $this->toArray();
-		if(XF_Db_Table_Validate::getInstance()->validateData($data, $this->getFieldValidateRule()->toArray(), true) === false)
+		if ($is_insert == false)
+		{
+			//只验证发生改变的字段
+			$dbResultArray = $this->getDBResultArray(false);
+			if ($dbResultArray != null && is_array($data))
+			{
+				foreach ($dbResultArray as $key => $val)
+				{
+					if (array_key_exists($key, $data) && $data[$key] === $val)
+						unset($data[$key]);
+				}
+			}
+		}
+		
+		if(XF_Db_Table_Validate::getInstance()->validateData($data, $this->getFieldValidateRule()->toArray(), true, $this, $is_insert) === false)
 			throw new XF_Db_Table_Exception(XF_DataPool::getInstance()->get('TableFieldDataValidateError'));
 		else
 		{
@@ -763,7 +806,7 @@ abstract class XF_Db_Table_Abstract
 	/**
 	 * 缓存数据库字段信息
 	 * @access	private
-	 * @return	void
+	 * @return	array 字段列表
 	 */
 	private function _makeCacheTableFields()
 	{
@@ -773,14 +816,13 @@ abstract class XF_Db_Table_Abstract
 			XF_File::mkdirs(TEMP_PATH.'/Cache/');
 		$cache->setCacheSaveFile(TEMP_PATH.'/Cache/DatabaseField');
 		$content = $cache->read($cache_key);
-
 		if ($content !== XF_CACHE_EMPTY)
-			return true;
+			return $content;
 
 		//缓存字段
-		$tepArray = $this->getTableSelect()->getFields();
-		$cache->add($cache_key, $tepArray);
-		return true;
+		$tmp = $this->getTableSelect()->getFields();
+		$cache->setCacheTime(60*24*30)->add($cache_key, $tmp);
+		return $tmp;
 		
 	}
 	
@@ -793,12 +835,7 @@ abstract class XF_Db_Table_Abstract
 	 */
 	private function _filterDataFromCacheField(&$final_data, $filter_primary_key = true)
 	{
-		$cache_key = md5($this->_db_name.$this->_table_name);
-		$cache = XF_Cache_SECache::getInstance();
-		$cache->setCacheSaveFile(TEMP_PATH.'/Cache/DatabaseField');
-		$field_keys = $cache->read($cache_key);
-		if ($field_keys == XF_CACHE_EMPTY)
-			return false;
+		$field_keys = $this->_makeCacheTableFields();
 
 		//获取表单的KEY
 		$form_keys = array_keys($final_data);

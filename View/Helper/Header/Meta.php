@@ -66,7 +66,6 @@ class XF_View_Helper_Header_Meta
 	
 	/**
 	 * 清除所有的meta信息
-	 * @access public
 	 * @return XF_View_Helper_Header_Meta
 	 */
 	public function clearAll()
@@ -74,7 +73,7 @@ class XF_View_Helper_Header_Meta
 		$this->_metas = null;
 		return $this;
 	}
-
+	
 	/**
 	 * 获取Meta内容
 	 * @access public

@@ -11,7 +11,7 @@
  * @desc 日期格式验证 例：1970-01-01
  * @author jingke
  */
-class XF_String_Validate_Date implements XF_String_Validate_Interface   
+class XF_String_Validate_Date implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

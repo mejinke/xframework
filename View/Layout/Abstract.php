@@ -1,5 +1,6 @@
 <?php
 /**
+ * 
  * -+-----------------------------------
  * |PHP5 Framework - 2011
  * |Web Site: www.iblue.cc
@@ -19,18 +20,18 @@ abstract class XF_View_Layout_Abstract
 	protected $_tpl = null;
 	
 	/**
-	 * 布局缓存方式。<br/>
-	 * FALSE：当Action启用布局时，如果其它Action之前已调用此布局，并且已存在缓存，则直接使用。<br/>
-	 * TRUE：当Action启用布局时，生成与当前Action唯一的布局缓存。不与其它Action调此同一个布局冲突。
+	 * 布局缓存是否为私有，默认为FALSE<br/>
+	 * TRUE：当Action启用布局时，生成与当前Action唯一的布局缓存。不与其它Action调此同一个布局冲突。<br/>
+	 * FALSE：当Action启用布局时，如果其它Action之前已调用此布局，并且已存在缓存，则直接使用。
 	 * @var bool
 	 */
-	protected $_cacheType = FALSE;
+	protected $_cache_is_private = FALSE;
 	
 	/**
 	 * 布局缓存时间
 	 * @var int
 	 */
-	protected $_cacheTime = 0;
+	protected $_cache_time = 0;
 	
 	/**
 	 * 填充布局页面的数据资料
@@ -43,8 +44,6 @@ abstract class XF_View_Layout_Abstract
 	 * @var bool
 	 */
 	private $_flag = false;
-	
-	
 	
 	public function __get($name)
 	{
@@ -67,12 +66,12 @@ abstract class XF_View_Layout_Abstract
 	 * 设置布局缓存时间。单位：分钟
 	 * @access public
 	 * @param int $minutes
-	 * @return Layout_Abstract
+	 * @return XF_View_Layout_Abstract
 	 */
 	public function setCacheTime($minutes)
 	{
 		if (is_numeric($minutes))	
-			$this->_cacheTime = $minutes;
+			$this->_cache_time = $minutes;
 		return $this;
 	}
 	
@@ -83,31 +82,29 @@ abstract class XF_View_Layout_Abstract
 	 */
 	public function getCacheTime()
 	{
-		return $this->_cacheTime;
+		return $this->_cache_time;
 	}
 	
 	/**
-	 * 设置布局缓存类型。<br/>
-	 * 公开(LAYOUT_CACHE_TYPE_PUBLIC)：当Action启用布局时，如果其它Action之前已调用此布局，并且已存在缓存，则直接使用。<br/>
-	 * 私有(LAYOUT_CACHE_TYPE_PRIVATE)：当Action启用布局时，生成与当前Action唯一的布局缓存。不与其它Action调此同一个布局冲突。
+	 * 布局缓存是否为私有，默认为FALSE<br/>
 	 * @access public
-	 * @param int $type
-	 * @return Layout_Abstract
+	 * @param $status bool TRUE：当Action启用布局时，生成与当前Action唯一的布局缓存。不与其它Action调此同一个布局冲突。 FALSE：当Action启用布局时，如果其它Action之前已调用此布局，并且已存在缓存，则直接使用。
+	 * @return void
 	 */
-	public function setCacheType($private = FALSE)
+	public function setCacheType($status = FALSE)
 	{
-			$this->_cacheType = $private;
+		$this->_cache_is_private = $status;
 		return $this;
 	}
 	
 	/**
 	 * 获取布局缓存类型
 	 * @access public
-	 * @return int
+	 * @return bool
 	 */
 	public function getCacheType()
 	{
-		return $this->_cacheType;
+		return $this->_cache_is_private;
 	}
 	
 	/**
@@ -172,27 +169,27 @@ abstract class XF_View_Layout_Abstract
 			return $content;
 			
 		//检测缓存
-		if ($this->_cacheTime > 0)
+		if ($this->_cache_time > 0)
 		{
 			$request = XF_Controller_Request_Http::getInstance();
 			$file = TEMP_PATH.'/Cache/LayoutScripts/';
 			$pathinfo = pathinfo($this->_tpl);
 
 			//检测布局缓存类型，定位正确的路径
-			if ($this->_cacheType)
-				$file .= 'Public/'.$pathinfo['basename'];
-			elseif ($this->_cacheType == FALSE)
+			if ($this->_cache_is_private)
 				$file .= 'Private/'.$request->getModule().'/'.
 						$request->getController().'/'.
 						$request->getAction().'/'.
 						$pathinfo['basename'];
-			
+			else
+				$file .= 'Public/'.$pathinfo['basename'];
+
 			XF_File::mkdirs(pathinfo($file, PATHINFO_DIRNAME));
 			
 			if (is_file($file))
 			{
 				//布局缓存是否过期
-				if (time() > (filemtime($file)+$this->_cacheTime * 60) )
+				if (time() > (filemtime($file)+$this->_cache_time * 60) )
 				{	
 					//缓存失效时执行用户的初始化操作init()
 					$this->_init();
@@ -254,7 +251,14 @@ abstract class XF_View_Layout_Abstract
 		require_once $file;
 		$content = ob_get_contents();
 		ob_end_clean();
+		//清除BOM
+		$charset[1] = substr($content, 0, 1);
+		$charset[2] = substr($content, 1, 1);
+		$charset[3] = substr($content, 2, 1);
+		if (ord($charset[1]) == 239 && ord($charset[2]) == 187 && ord($charset[3]) == 191) 
+			$content = substr($content, 3);
+			
+		XF_Controller_Plugin_Manage::getInstance()->postRender($content);
 		return $content;
 	}
 }
-?>

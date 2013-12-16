@@ -53,9 +53,11 @@ class XF_Db_Table_Validate
 	 * @param array $data 将要验证的数组
 	 * @param array $validate_rules 验证规则数组
 	 * @param bool $validate_all　是否同时验证所有规则
+	 * @param XF_Db_Table_Abstract $db_table　主要支持unique的验证，默认为null
+	 * @param bool $is_insert 是否为添加数据操作？如果不是，则不强制执行required
 	 * @return	mixed 一般返回验证后的数据［数组］
 	 */
-	public function validateData(&$data, $validate_rules, $validate_all = false)
+	public function validateData(&$data, $validate_rules, $validate_all = false, XF_Db_Table_Abstract $db_table = NULL, $is_insert = TRUE)
 	{
 		if(!empty($validate_rules))
 		{
@@ -75,22 +77,17 @@ class XF_Db_Table_Validate
 			//依次对规则进行分析
 			foreach($rules as $key => $val)
 			{ 
-				$required = false;
 				//如果当规则字段存在
 				if(isset($data[$key]) || $validate_all == true)
 				{
-					//检测是否存在必填规则(required)
-					if(strpos($rules[$key], 'required') >= 0 && strpos($rules[$key], 'required') != false)
-						$required = true;
-					
 					//将规则转换为数组
-					$tmp_array = explode(',', $rules[$key]);
+					$tmp_array = explode(',', $val);
 
 					foreach ($tmp_array as $index => $vals)
 					{
 						//获取规则名称及值
 						$tep = explode(':', $vals);
-						$status = $this->_switchValidateFormData($data, $key, $required, strtolower($tep[0]), $tep[1], $message);
+						$status = $this->_switchValidateFormData($data, $key, strtolower($tep[0]), $tep[1], $message, $db_table, $is_insert);
 						if ($status === false )
 						{
 							//是否有设置默认值？
@@ -120,26 +117,34 @@ class XF_Db_Table_Validate
 	 * @access private
 	 * @param array $data 将要验证的数组资料
 	 * @param string $key	当前需要验证的字段[key]
-	 * @param string $required	是否存在required
 	 * @param string $rules_name	规则名称
 	 * @param mixed $rules_value	规则值
 	 * @param array	 $message	自定义错误信息
+	 * @param XF_Db_Table_Abstract $db_table　主要支持unique的验证，默认为null
+	 * @param bool $is_insert 是否为添加数据操作？如果不是，则不强制执行required
 	 * @return bool
 	 */
-	private function _switchValidateFormData($data, $key, $required, $rules_name, $rules_value, $message)
+	private function _switchValidateFormData($data, $key, $rules_name, $rules_value, $message, XF_Db_Table_Abstract $db_table = NULL, $is_insert = TRUE)
 	{
 		$this->_validate_count++;
 		//判断规则，分析结果
 		$validateOk = true;
-
+	
 		switch($rules_name)
 		{
 			//验证 必填
 			case 'required':
 				if($rules_value == 'true')
 				{
-					if(!isset($data[$key]) || XF_Functions::isEmpty($data[$key]))
+					if (isset($data[$key]))
+					{
+						if (XF_Functions::isEmpty($data[$key]))
+							$validateOk = false;
+					}
+					elseif ($is_insert == true)
+					{
 						$validateOk = false;
+					}						
 				}
 				break;
 
@@ -153,8 +158,6 @@ class XF_Db_Table_Validate
 							$validateOk = false;
 					}
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//数字小于XX
@@ -165,8 +168,6 @@ class XF_Db_Table_Validate
 						$validateOk = false;
 
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//数字大于XX
@@ -176,8 +177,6 @@ class XF_Db_Table_Validate
 					if($data[$key] < $rules_value)
 						$validateOk = false;
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 
@@ -187,8 +186,6 @@ class XF_Db_Table_Validate
 				{
 					$validateOk = XF_String_Validate_Email::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 是否为正确的电话号码
@@ -198,8 +195,6 @@ class XF_Db_Table_Validate
 					
 						$validateOk = XF_String_Validate_Phone::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 是否为正确的手机号码
@@ -208,8 +203,6 @@ class XF_Db_Table_Validate
 				{
 					$validateOk = XF_String_Validate_Moblie::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 是否为正确的身份证号码
@@ -218,8 +211,6 @@ class XF_Db_Table_Validate
 				{
 					$validateOk = XF_String_Validate_Card::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 是否为正确邮政编码
@@ -228,8 +219,6 @@ class XF_Db_Table_Validate
 				{
 					$validateOk = XF_String_Validate_ZipCode::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 最小长度
@@ -239,8 +228,6 @@ class XF_Db_Table_Validate
 					if(mb_strlen($data[$key],'utf8') < $rules_value)
 						$validateOk = false;
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证 最大长度
@@ -250,8 +237,6 @@ class XF_Db_Table_Validate
 					if(mb_strlen($data[$key],'utf8') > $rules_value)
 						$validateOk = false;
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 				
 			//验证 ip地址
@@ -260,8 +245,6 @@ class XF_Db_Table_Validate
 				{
 					$validateOk = XF_String_Validate_Ip::validate($data[$key]);
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			/**
@@ -270,22 +253,13 @@ class XF_Db_Table_Validate
 			 *
 			 */
 			case 'in':
-				$flag = 0;
-				if(!empty($data[$key]))
+				if(XF_Functions::isEmpty($data[$key]) == FALSE)
 				{
-					if($tep_array = explode('|',$rules_value))
+					if (!in_array($data[$key], explode('|', $rules_value)))
 					{
-						for($i=0; $i<count($tep_array); $i++)
-						{
-							if($data[$key] == $tep_array[$i])
-								$flag++;
-						}
-					}
-					if($flag == 0)
 						$validateOk = false;
+					}	
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			/**
@@ -294,22 +268,13 @@ class XF_Db_Table_Validate
 			 *
 			 */
 			case 'not_in':
-				$flag = 0;
-				if(!empty($data[$key]))
+				if(XF_Functions::isEmpty($data[$key]) == FALSE)
 				{
-					if($tep_array = explode('|',$rules_value))
+					if (!in_array($data[$key], explode('|', $rules_value)))
 					{
-						for($i=0; $i<count($tep_array); $i++)
-						{
-							if($data[$key] == $tep_array[$i])
-								$flag++;
-						}
-					}
-					if($flag > 0)
 						$validateOk = false;
+					}
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 
 			//验证与指定的字段值是否相同
@@ -319,8 +284,6 @@ class XF_Db_Table_Validate
 					if($data[$key] != $data[$rules_value])
 						$validateOk = false;
 				}
-				elseif($required)
-					$validateOk = false;
 				break;
 				
 			case 'date':
@@ -335,6 +298,16 @@ class XF_Db_Table_Validate
 				if($rules_value == 'true')
 				{
 					if(!XF_String_Validate_Time::validate($data[$key]))
+						$validateOk = false;
+				}
+				break;
+				
+			case 'unique':
+				if ($rules_value == 'true')
+				{
+					if ($db_table == NULL)
+						$validateOk = false;
+					elseif(!XF_Db_Table_Validate_Unique::validate($data[$key], $key, $db_table, $is_insert))
 						$validateOk = false;
 				}
 				break;

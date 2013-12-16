@@ -1,4 +1,16 @@
 <?php
+/**
+ * 
+ * -+-----------------------------------
+ * |PHP5 Framework - 2011
+ * |Web Site: www.iblue.cc
+ * |E-mail: mejinke@gmail.com
+ * |Date: 2012-01-11
+ * -+-----------------------------------
+ *
+ * @desc 表对象认证器
+ * @author jingke
+ */
 class XF_Auth_Adapter_DbTable implements XF_Auth_Adapter_Interface
 {
 	/** 

@@ -1,5 +1,4 @@
 <?php
-if(!defined('APPLICATION_PATH'))die('Cannot access the file !');
 /** 
  * 
  * -+-----------------------------------
@@ -39,6 +38,20 @@ class XF_View
 	 * @var string
 	 */
 	private  $_layout = '';
+	
+	/**
+	 * 缓存驱动
+	 * @access private
+	 * @var XF_Cache_Interface
+	 */
+	private $_cache_instance;
+	
+	/**
+	 * Action缓存时间[分钟] 0为不缓存
+	 * @access priviate
+	 * @var int
+	 */
+	private $_cache_time = 0;
 	
 	private function __construct(){}
 	private function __clone(){}
@@ -97,16 +110,43 @@ class XF_View
 	}
 
 	/**
+	 * 设置Action的缓存驱动对象
+	 * @access public
+	 * @param XF_Cache_Interface $cache
+	 * @return XF_View
+	 */
+	public function setCache(XF_Cache_Interface $cache)
+	{
+		$this->_cache_instance = $cache;
+		return $this;	
+	}
+	
+	/**
+	 * 设置Action缓存时间
+	 * @access public
+	 * @param int $minutes
+	 * @return XF_View
+	 */
+	public function setCacheTime($minutes = 0)
+	{
+		if (is_int(intval($minutes)))
+		{
+			$this->_cache_time = intval($minutes);
+		}
+		return $this;
+	}
+		
+	/**
 	 * 渲染模板
 	 * @access public
 	 * @param string $template_file Action模板文件
-	 * @param int $cache_time 缓存时间，单位分钟
 	 * @param string $cache_sign 缓存标识
 	 * @param XF_View_Layout_Abstract $layout 
 	 * @return string
 	 */
-	public function render($template_file = null, $cache_time = 0, XF_View_Layout_Abstract $layout = null)
+	public function render($template_file = null, $cache_sign = '', XF_View_Layout_Abstract $layout = null)
 	{
+			
 		$this->getTemplateStartLocation();
 		$request = XF_Controller_Request_Http::getInstance();
 		$appName = $request->getModule();
@@ -118,28 +158,30 @@ class XF_View
 			$template_file = $this->_template_folder.'/'.$controllerName.'/'.$actionName.'.php';
 			
 		if (!is_file($template_file))
-			throw new XF_View_Exception('Action模板没有找到!', 500);
+			throw new XF_View_Exception('Action template not found');
 		
 		$content = $this->obGetContents($template_file);
 		
+		XF_Controller_Plugin_Manage::getInstance()->postRender($content);
+		
 		//是否需要缓存?
-		if ($cache_time > 0) 
+		if ($this->_cache_time > 0) 
 		{
+			$layout_tag = '';
+			if ($layout != null)
+				$layout_tag = '<!--Layout:'.get_class($layout).','.$layout->getCacheTime().','.(int)$layout->getCacheType().'-->';
 				
-			if ($layout == null)
-				$time_tag = '<!--##'.time().':'.$cache_time.'##-->';
-			else
-				$time_tag = '<!--##'.time().':'.$cache_time.'|'.get_class($layout).'|'.$layout->getCacheTime().':'.(int)$layout->getCacheType().'##-->';
-				
-			$_content = $content.$time_tag.$this->_makeCacheHeadTitleAndHeadMeta();
-	 
-			//缓存文件名称
-			$cache_key = md5($appName.$controllerName.$actionName.serialize(XF_Controller_Request_Http::getInstance()->getCustomParams(false)));
-			//写入缓存文件
-			XF_File::mkdirs(TEMP_PATH.'/Cache');
-			$secache = new secache();
-			$secache->workat(TEMP_PATH.'/Cache/ActionViewCache');
-			$secache->store($cache_key, $_content);
+			$_content = $content.$layout_tag.$this->_makeCacheHeadTitleAndHeadMeta();
+		
+			//写入缓存
+			if ($this->_cache_instance instanceof XF_Cache_SECache)
+			{
+				XF_File::mkdirs(TEMP_PATH.'/Cache');
+				$this->_cache_instance->setCacheSaveFile(TEMP_PATH.'/Cache/ActionViewCache');
+			}
+			
+			$this->_cache_instance->setCacheTime($this->_cache_time);
+			$this->_cache_instance->add($cache_sign, $_content);
 		}
 		
 		//是否启用布局
@@ -162,10 +204,12 @@ class XF_View
 		$metas = $this->headMeta()->getMetas();
 		$scripts = $this->headScript()->getScripts();
 		$stylesheets = $this->headStylesheet()->getStylesheets();
-		$html =  "<!--###TITLE:$title###-->\n";
-		$html .=  "<!--###METAS:".serialize($metas)."###-->\n";
-		$html .=  "<!--###SCRIPTS:".serialize($scripts)."###-->\n";
-		$html .=  "<!--###STYLESHEETS:".serialize($stylesheets)."###-->";
+		$links = $this->headLink()->getLinks();
+		$html =  '<!--Title:'.$title.'-->';
+		$html .=  '<!--Metas:'.serialize($metas).'-->';
+		$html .=  '<!--Scripts:'.serialize($scripts).'-->';
+		$html .=  '<!--Stylesheets:'.serialize($stylesheets).'-->';
+		$html .=  '<!--Links:'.serialize($links).'-->';
 		return $html;
 	}
 
@@ -184,7 +228,7 @@ class XF_View
 		ob_start();
 		require $file;
 		$content = ob_get_contents();
-		ob_clean();
+		ob_end_clean();
 		
 		//清除BOM
 		$charset[1] = substr($content, 0, 1);
@@ -204,7 +248,7 @@ class XF_View
 	 */
 	public function getTemplateStartLocation()
 	{
-		$this->_template_folder = XF_Controller_Front::getInstance()->getModuleDir().'/views/'.XF_Config::getInstance()->getViewType();
+		$this->_template_folder = XF_Controller_Front::getInstance()->getModuleDir().'/views/'.XF_Config::getInstance()->getViewStyle();
 		return $this->_template_folder;
 	}
 
@@ -228,6 +272,16 @@ class XF_View
 	public function headMeta($var = null)
 	{
 		return XF_View_Helper::getInstance()->headeMeta($var);
+	}
+	
+	/**
+	 * Link
+	 * @param string $var
+	 * @return XF_View_Helper_Header_Link
+	 */
+	public function headLink($var = null)
+	{
+		return XF_View_Helper::getInstance()->headeLink($var);
 	}
 	
 	/**

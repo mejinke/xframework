@@ -11,7 +11,7 @@
  * @desc 手机号码验证
  * @author jingke
  */
-class XF_String_Validate_Moblie implements XF_String_Validate_Interface   
+class XF_String_Validate_Moblie implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

@@ -1,5 +1,4 @@
 <?php
-if(!defined('APPLICATION_PATH'))die('Cannot access the file !');
 /**
  * 
  * -+-----------------------------------
@@ -105,6 +104,12 @@ class XF_Db_Table_Select_Paginator
 	protected $_no_page_current_url = '';
 	
 	/**
+	 * 生成使用传统带问号方式的连接
+	 * @var bool
+	 */
+	private $_is_default_link = FALSE;
+	
+	/**
 	 * 当前参数列表
 	 * @var array
 	 */
@@ -156,6 +161,19 @@ class XF_Db_Table_Select_Paginator
 	public function setCustomUrl($customUrl = '')
 	{
 		$this->_custom_url = $customUrl;
+		return $this;
+	}
+	
+	
+	/**
+	 * 设置为使用传统的连接方式 
+	 * @access public
+	 * @param bool $status
+	 * @return XF_Db_Table_Select_Paginator
+	 */
+	public function setDefaultLink($status = TRUE)
+	{
+		$this->_is_default_link = $status;
 		return $this;
 	}
 	
@@ -424,12 +442,27 @@ class XF_Db_Table_Select_Paginator
 		$url = $this->_custom_url;
 		if ($this->_custom_url == null)
 		{
-			$module = $this->_request->getModule() == 'Default' ? '' : '/'.$this->_request->getModule();
+			$module = strtolower($this->_request->getModule()) == 'default' ? '' : '/'.$this->_request->getModule();
 			$url = $module.'/'.$this->_request->getController().'/'.$this->_request->getAction();
 			
-			foreach ($this->_params as $key => $val)
+			if ($this->_is_default_link === TRUE)
 			{
-				$url.= '/'.$key.'/'. $val;
+				$i = 0;
+				foreach ($this->_params as $key => $val)
+				{
+					$i++;
+					if ($i == 1)
+						$url.= '/?'.$key.'='. urlencode($val);
+					else
+						$url.= '&'.$key.'='. urlencode($val);
+				}
+			}
+			else
+			{
+				foreach ($this->_params as $key => $val)
+				{
+					$url.= '/'.$key.'/'. urlencode($val);
+				}
 			}
 		}
 		else 

@@ -82,7 +82,7 @@ abstract class XF_Controller_Request_Abstract
 	 */
 	public function setModule($module_name)
 	{
-		$this->_module = $module_name;
+		$this->_module = strtolower($module_name);
 		$this->setParam($this->_module_key, $this->_module);
 		return $this;
 	}

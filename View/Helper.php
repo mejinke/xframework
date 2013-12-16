@@ -44,13 +44,23 @@ class XF_View_Helper
 	}
 	
 	/**
-	 * 获取meat
+	 * 获取meta
 	 * @param string $var
 	 * @return XF_View_Helper_Header_Meta
 	 */
 	public function headeMeta($var)
 	{
 		return XF_View_Helper_Header_Meta::getInstance($var);
+	}
+	
+	/**
+	 * 获取link
+	 * @param string $var
+	 * @return XF_View_Helper_Header_Link
+	 */
+	public function headeLink($var)
+	{
+		return XF_View_Helper_Header_Link::getInstance($var);
 	}
 	
 	/**

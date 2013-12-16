@@ -11,7 +11,7 @@
  * @desc 邮箱验证
  * @author jingke
  */
-class XF_String_Validate_Email implements XF_String_Validate_Interface   
+class XF_String_Validate_Email implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

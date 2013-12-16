@@ -178,8 +178,8 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 */
 	public function fetchAll($options = array(), $emptyObject = FALSE)
 	{
-		$size = isset($this->_adv_limit[0]) ? $this->_adv_limit[0] : 20;
-		$offset = isset($this->_adv_limit[1]) ? $this->_adv_limit[1] : 0;
+		$size = isset($this->_adv_limit[1]) ? $this->_adv_limit[1] : 20;
+		$offset = isset($this->_adv_limit[0]) ? $this->_adv_limit[0] : 0;
 		
 		//如果是自定义查询 该sql主要用于获取数据
 		$sql =  isset($options['sql']) ? $options['sql'] : FALSE;
@@ -197,7 +197,6 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		
 		$this->_allotDatabaseServer();
 		
-		
 		//查询的结果
 		$result = false;
 		
@@ -206,41 +205,61 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		{
 			if ($sql == FALSE)
 			{
-				$this->_db_drive_connect->showQuery($this->_show_query);
-				$result = $this->_db_drive_connect->select($this->_db_table->getTableName(), 
-												$this->_adv_find, 
-												$this->_adv_where, 
-												$this->_adv_order, 
-												false, 
-												false);
-				$this->_setDataCache($result);
-				$this->_clearProperty();
+				//是否有缓存 
+				$result = $this->_getDataCache();
+				if ($result == XF_CACHE_EMPTY)
+				{
+					$this->_db_drive_connect->showQuery($this->_show_query);
+					$result = $this->_db_drive_connect->select($this->_db_table->getTableName(), 
+													$this->_adv_find, 
+													$this->_adv_where, 
+													$this->_adv_order, 
+													false, 
+													false);
+					$this->_setDataCache($result);
+				}
 				//返回包装后的结果
-				return $this->_packing($result, $emptyObject);
+				if ($packing == true)
+					$result = $this->_packing($result, $emptyObject);
+				$this->_clearProperty();
+				return $result;
 			}
 			else //定自义SQL查询
 			{
-				$result = $this->_db_drive_connect->execute($sql);
-				$this->_setDataCache($result);
+				//是否有缓存 
+				$result = $this->_getDataCache($sql);
+				if ($result == XF_CACHE_EMPTY) 
+				{
+					$result = $this->_db_drive_connect->execute($sql);
+					$this->_setDataCache($result, $sql);
+				}
 				if ($sqlPacking == true)
-					return $this->_packing($result, $emptyObject);
+					$result = $this->_packing($result, $emptyObject);
+				$this->_clearProperty();
 				return $result;
 			}
 		}
 		/////正常的设置了$size(start), $offset
 		elseif (is_numeric($size) && is_numeric($offset) && $autoPage == false)  
 		{
-			$this->_db_drive_connect->showQuery($this->_show_query);
-			$result = $this->_db_drive_connect->select($this->_db_table->getTableName(), 
-											$this->_adv_find, 
-											$this->_adv_where, 
-											$this->_adv_order, 
-											$offset, 
-											$size);
-			$this->_setDataCache($result);
-			$this->_clearProperty();
+			//是否有缓存 
+			$result = $this->_getDataCache();
+			if ($result == XF_CACHE_EMPTY)
+			{
+				$this->_db_drive_connect->showQuery($this->_show_query);
+				$result = $this->_db_drive_connect->select($this->_db_table->getTableName(), 
+												$this->_adv_find, 
+												$this->_adv_where, 
+												$this->_adv_order, 
+												$size, 
+												$offset);
+				$this->_setDataCache($result);
+			}
 			//返回包装后的结果
-			return $this->_packing($result, $emptyObject);
+			if ($packing == true)
+				$result = $this->_packing($result, $emptyObject);
+			$this->_clearProperty();
+			return $result;
 		}
 		
 		
@@ -285,7 +304,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			if ($autoPage === FALSE) $p=1;
 
 			//是否为正常的页码
-			$page_count = ceil($dataCount/$offset);
+			$page_count = $dataCount > 0 ? ceil($dataCount/$size) : 0;
 			if (($existsPage && $page_count < $p && $autoPage === TRUE) || $p==0)
 				throw new XF_Db_Table_Select_Exception('Not found!', 404);
 		
@@ -294,7 +313,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			if ($sql == false)
 			{
 				//读取缓存
-				$this->_adv_limit[1] = ($p-1)*$offset;
+				$this->_adv_limit[1] = ($p-1)*$size;
 				$result = $this->_getDataCache();
 				if($result == XF_CACHE_EMPTY)
 				{ 
@@ -303,39 +322,48 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 												$this->_adv_find, 
 												$this->_adv_where, 
 												$this->_adv_order, 
-												$offset, 
-												($p-1)*$offset);
+												$size, 
+												($p-1)*$size);
 					$this->_setDataCache($result);
 				}
-			
 			}
 			else
 			{
-				$sql = $sql.' LIMIT '.($p-1)*$offset.','.$offset;
-				//获取当前页结果
-				$this->_db_drive_connect->showQuery($this->_show_query);
-				$result = $this->_db_drive_connect->execute($sql, true);
-				$this->_setDataCache($result);
-				if ($sqlPacking == false)
-					return $result;
+				$sql = $sql.' LIMIT '.($p-1)*$offset.','.$size;
+				
+				//读取缓存 
+				$result = $this->_getDataCache($sql);
+				if ($result == XF_CACHE_EMPTY)
+				{
+					//获取当前页结果
+					$this->_db_drive_connect->showQuery($this->_show_query);
+					$result = $this->_db_drive_connect->execute($sql, true);
+					$this->_setDataCache($result, $sql);
+				}	
 			}
 			
-			
 			//设置分页器内容
-			$paginator->set($offset, $dataCount);
-			$paginator->run();
-			//还原相关属性
-			$this->_clearProperty();
+			$paginator->set($size, $dataCount);
+			$paginator->run();		
 			//返回包装后的结果
-			if ($packing == true)
-				return $this->_packing($result, $emptyObject);
+			if ($packing == true && $sql == false)
+				$result = $this->_packing($result, $emptyObject);
+			if ($sql != false && $sqlPacking == true)
+				$result = $this->_packing($result, $emptyObject);
+			$this->_clearProperty();
 			return $result;
 		
 		}
 		else //防止自动分页
-			return $this->_packing($result, $emptyObject);
-			
-		
+		{
+			//返回包装后的结果
+			if ($packing == true && $sql == false)
+				$result = $this->_packing($result, $emptyObject);
+			if ($sql != false && $sqlPacking == true)
+				$result = $this->_packing($result, $emptyObject);
+			$this->_clearProperty();
+			return $result;
+		}		
 	}
 
 	/**
@@ -427,8 +455,8 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 												$this->_adv_find, 
 												$this->_adv_where, 
 												$this->_adv_order, 
-												@$this->_adv_limit[0], 
-												@$this->_adv_limit[1]);
+												@$this->_adv_limit[1], 
+												@$this->_adv_limit[0]);
 	}
 	
 	/**
@@ -474,6 +502,16 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		{
 			if ($file == null)
 				$file = $this->_getDataCacheFileName();
+			return $this->_cache_class->read($file);
+		}
+		elseif (XF_DataPool::getInstance()->get(XF_Cache_Abstract::ChunkCacheIdentify) !== false)
+		{ 
+			$cache = XF_DataPool::getInstance()->get(XF_Cache_Abstract::ChunkCacheIdentify);
+			$tmp = explode('$', $cache);
+			if (count($tmp) != 2) return XF_CACHE_EMPTY;
+			$this->_cache_class = call_user_func(array($tmp[0], 'getInstance'));
+			$this->_data_cache_time = intval($tmp[1]);
+			if ($file == null) $file = $this->_getDataCacheFileName();
 			return $this->_cache_class->read($file);
 		}
 		return XF_CACHE_EMPTY;
@@ -526,17 +564,47 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			
 			$entity = $this->_autoSelectFieldAssociated($entity);
 			//关联完后执行指定的init
-			if (method_exists($entity, 'initFromAssociateAfter') && $this->_auto_call_init)
-				$entity->initFromAssociateAfter();
+			if (method_exists($entity, 'initAssociatedAfter') && $this->_auto_call_init)
+				$entity->initAssociatedAfter();
 				
 			//检测需要自动执行的方法
 			$methods = $entity->getInitAutoExecuteMethods();
 			if (is_array($methods) && count($methods) > 0 && $this->_auto_call_init)
 			{
-				foreach ($methods as $m)
+				foreach ($methods as $methodName => $m)
 				{
-					if (strpos($m, '$') === false)
-						$entity->$m();
+					if (strpos($methodName, '$') === false)
+					{
+						$ref = new ReflectionMethod(get_class($entity), $m['method']);
+						$paramCount = $ref->getNumberOfParameters();
+							
+						if ($m['params'] !== NULL)
+						{
+							if (count($m['params']) < $paramCount)
+							{
+								while (count($m['params']) < $paramCount)
+								{
+									$m['params'][] = NULL;
+								}
+							}
+							call_user_func_array(array($entity, $m['method']), $m['params']);
+						}
+						else
+						{
+							if ($paramCount == 0)
+								$entity->{$m['method']}();
+							else 
+							{
+								$m['params'] = array();
+								while ($paramCount > 0)
+								{
+									$m['params'][] = NULL;
+									$paramCount--;
+								}
+								call_user_func_array(array($entity, $m['method']), $m['params']);
+							}
+						} 
+					}
 				}
 			}
 				
@@ -562,16 +630,46 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			//关联完后执行指定的init
 			foreach ($entityList as $entity)
 			{
-				if (method_exists($entity, 'initFromAssociateAfter') && $this->_auto_call_init)
-					$entity->initFromAssociateAfter();
+				if (method_exists($entity, 'initAssociatedAfter') && $this->_auto_call_init)
+					$entity->initAssociatedAfter();
 					
 				//检测需要自动执行的方法
 				if (is_array($methods) && count($methods) > 0 && $this->_auto_call_init)
 				{
-					foreach ($methods as $m)
+					foreach ($methods as $methodName => $m)
 					{
-						if (strpos($m, '$') === false)
-							$entity->$m();
+						if (strpos($methodName, '$') === false)
+						{
+							$ref = new ReflectionMethod(get_class($entity), $m['method']);
+							$paramCount = $ref->getNumberOfParameters();
+								
+							if ($m['params'] !== NULL)
+							{
+								if (count($m['params']) < $paramCount)
+								{
+									while (count($m['params']) < $paramCount)
+									{
+										$m['params'][] = NULL;
+									}
+								}
+								call_user_func_array(array($entity, $m['method']), $m['params']);
+							}
+							else
+							{
+								if ($paramCount == 0)
+									$entity->{$m['method']}();
+								else 
+								{
+									$m['params'] = array();
+									while ($paramCount > 0)
+									{
+										$m['params'][] = NULL;
+										$paramCount--;
+									}
+									call_user_func_array(array($entity, $m['method']), $m['params']);
+								}
+							} 
+						}
 					}
 				}
 			}
@@ -697,6 +795,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 					{
 						$fieldValues[$vv[$assName[0]]['table']][$vv[$assName[0]]['associateField']]['data'] = $values;
 						$fieldValues[$vv[$assName[0]]['table']][$vv[$assName[0]]['associateField']]['_other'] = array(
+							'size' => isset($vv[$assName[0]]['size']) ? $vv[$assName[0]]['size'] : null,
 							'where' => isset($vv[$assName[0]]['where']) ? $vv[$assName[0]]['where'] : null,
 							'order' => isset($vv[$assName[0]]['order']) ? $vv[$assName[0]]['order'] : null,
 							'oneToMany' => $vv[$assName[0]]['oneToMany'],
@@ -725,10 +824,8 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   				$matchAssting = $objectAssting[$_k];
 			   				foreach ($matchAssting as $mk => $mval)
 			   				{
-			   					 
 			   					if (get_class($table) == $mval['assObjectName'])
 			   					{
-			   					  
 			   						if ($mval['autoAssociated'] == true)
 			   							$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
 			   						else
@@ -739,7 +836,6 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   		}	
 			   	}
 
-
 			   	foreach ($fv as $k => $v)
 			   	{
 			   		///设置关联对象的init
@@ -747,7 +843,13 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   		{
 			   			foreach ($v['_other']['autoinit'] as $m)
 			   			{
-			   				$table->addInitAutoExecuteMethod($m);
+			   				if ($m['params'] !== NULL)
+			   				{
+			   					array_unshift($m['params'], $m['method'], NULL);
+			   					call_user_func_array(array($table, 'addInitAutoExecuteMethod'), $m['params']);
+			   				}
+			   				else
+			   					$table->addInitAutoExecuteMethod($m['method']);
 			   			}
 			   		}
 
@@ -755,16 +857,18 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   		$select->setWhere($v['_other']['where'])->setWhereIn($k, array_values($v['data']))->setOrder($v['_other']['order'])->setLimit(false);
 			   		$sql = $select->getSql();
 			   		//是否为一对一查询 IN条件查询的每个值对应的查询结果可能是多条，所以需要再次分组
-			   		if ($v['_other']['oneToMany'] != true)
-			   		{
+			   		if ($v['_other']['oneToMany'] !== true)
 			   			$sql = "SELECT * FROM({$sql}) AS XF_NewTable GROUP BY {$k}";
-			   		}
+			   			
+			   		//主查询是否已缓存 
+			   		if ($this->_data_cache_time > 0 && $this->_cache_class instanceof  XF_Cache_Interface)
+			   			$select->setCacheClass($this->_cache_class)->setCache($this->_data_cache_time);
+			   			
 			   		$rs = $select->execute($sql, true);
 			   		$allAssociateInfos[$fk.'=>'.$k.''] = $rs;
-			   		
 			   	}
 			}
-
+			
 			//组合资料
 			foreach ($info as $info_k => $info_v)
 			{
@@ -794,17 +898,30 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 											{
 												if ($fieldValue == $assInfo_vv->{$assConfig_v['associateField']})
 												{
+													
 													if (count($fields) >1)
 													{
 														if ($assConfig_v['oneToMany'] == true)
-															$info[$info_k]->{$assConfig_k.'_'.$field.'[]'} = $assInfo_vv;
+														{
+															//一对多时，记录总数
+															$info[$info_k]->{$assConfig_k.'_all_data_count'}+=1;
+															$_count = is_array($info[$info_k]->{$assConfig_k.'_'.$field}) ? count($info[$info_k]->{$assConfig_k.'_'.$field}) : 0;
+															if ($_count < $assConfig_v['size'])
+																$info[$info_k]->{$assConfig_k.'_'.$field.'[]'} = $assInfo_vv;
+														}
 														else
 															$info[$info_k]->{$assConfig_k.'_'.$field} = $assInfo_vv;
 													}
 													else
 													{
 														if ($assConfig_v['oneToMany'] == true)
-															$info[$info_k]->{$assConfig_k.'[]'} = $assInfo_vv;
+														{
+															//一对多时，记录总数
+															$info[$info_k]->{$assConfig_k.'_all_data_count'}+=1;
+															$_count = is_array($info[$info_k]->{$assConfig_k}) ? count($info[$info_k]->{$assConfig_k}) : 0;
+															if ($_count < $assConfig_v['size'])
+																$info[$info_k]->{$assConfig_k.'[]'} = $assInfo_vv;
+														}
 														else
 															$info[$info_k]->{$assConfig_k} = $assInfo_vv;
 													}  
@@ -813,18 +930,29 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 										}
 										elseif ($info_v->$field == $assInfo_vv->{$assConfig_v['associateField']})
 										{
-											
 											if (count($fields) >1)
 											{
 												if ($assConfig_v['oneToMany'] == true)
-													$info[$info_k]->{$assConfig_k.'_'.$field.'[]'} = $assInfo_vv;
+												{
+													//一对多时，记录总数
+													$info[$info_k]->{$assConfig_k.'_all_data_count'}+=1;
+													$_count = is_array($info[$info_k]->{$assConfig_k.'_'.$field}) ? count($info[$info_k]->{$assConfig_k.'_'.$field}) : 0;
+													if ($_count < $assConfig_v['size'])
+														$info[$info_k]->{$assConfig_k.'_'.$field.'[]'} = $assInfo_vv;
+												}
 												else
 													$info[$info_k]->{$assConfig_k.'_'.$field} = $assInfo_vv;
 											}
 											else
 											{
 												if ($assConfig_v['oneToMany'] == true)
-													$info[$info_k]->{$assConfig_k.'[]'} = $assInfo_vv;
+												{
+													//一对多时，记录总数
+													$info[$info_k]->{$assConfig_k.'_all_data_count'}+=1;
+													$_count = is_array($info[$info_k]->{$assConfig_k}) ? count($info[$info_k]->{$assConfig_k}) : 0;
+													if ($_count < $assConfig_v['size'])
+														$info[$info_k]->{$assConfig_k.'[]'} = $assInfo_vv;
+												}
 												else
 													$info[$info_k]->{$assConfig_k} = $assInfo_vv;
 											}  
@@ -868,10 +996,10 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		{
 			$this->setWhere(array($this->_db_table->getPrimaryKey() => $this->_db_table->getPrimaryKeyValue()));
 		}
-		
+
 		if ($data == null)
-			$data = $this->_db_table->toArray(false);
-			
+			$data = $tableData = $this->_db_table->toArray(false);
+
 		//动态更新字段[只更新发生改变的字段]
 		$dbResultArray = $this->_db_table->getDBResultArray(false);
 		if ($dbResultArray != null && is_array($data))
@@ -881,23 +1009,17 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 				if (array_key_exists($key, $data) && $data[$key] === $val)
 					unset($data[$key]);
 			}
-		}		
-			
+		}
+		
 		if ($data == null) return true;
-
 		///防止直接调用此方法所造成的字段错误
 		$tmp = debug_backtrace();
-		if (!isset($tmp[0]['file']) || strpos($tmp[0]['file'], 'Db/Table/Abstract.php') == false)
+		if (!isset($tmp[0]['file']) || strpos(str_replace('\\', '/', $tmp[0]['file']), 'Db/Table/Abstract.php') == false)
 			$data = $this->_db_table->getFormData($data);
 
-		
 		$this->_db_drive_connect->showQuery($this->_show_query);
 		$result = $this->_db_drive_connect->update($this->_db_table->getTableName(), $data, $this->_adv_where);
 		$this->_clearProperty();
-		if ($result === true)
-		{
-			$this->_db_table->fillDataFromArray($data);
-		}
 		return $result;
 	}
 	
@@ -1000,9 +1122,8 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 * @access protected
 	 * @return void
 	 */
-	protected function _selectDatabaseServer($dbType = 'mysql_connect')
+	protected function _selectDatabaseServer()
 	{
-	 
 		$config = XF_Config::getInstance();
 		$this->_open_slave = $config->getDBOpenSlave();
 
@@ -1033,7 +1154,6 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 							->setAccount($master['user'])
 							->setPassword($master['pass'])
 							->setChar('utf8');
-			
 		}
 	}
 	

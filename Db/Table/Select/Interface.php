@@ -33,17 +33,18 @@ interface XF_Db_Table_Select_Interface
 	/**
 	 * 追加查询条件
 	 * @access public
-	 * @param string | Array $var
+	 * @param mixed $var
+	 * @param string $where_type 条件类别 'AND'、 'OR' 默认为AND
 	 * @return XF_Db_Table_Select_Interface
 	 */
-	public function appendWhere($var);
+	public function appendWhere($var, $where_type = 'AND');
 	
 	/**
 	 * 设置IN条件
 	 * @access public
 	 * @param string $fields 字段 例：id
 	 * @param array $array 条件值 例：array(1,3,4,23,5)
-	 * @param string $where_type 条件类别 [ MODEL_WHERE_RELA_AND、MODEL_WHERE_RELA_OR  默认 MODEL_WHERE_RELA_AND]
+	 * @param string $where_type 条件类别 'AND'、 'OR' 默认为AND
 	 * @return XF_Db_Table_Select_Interface
 	 */
 	public function setWhereIn($field, Array $array = array(), $where_type = 'AND');
@@ -53,7 +54,7 @@ interface XF_Db_Table_Select_Interface
 	 * @access public
 	 * @param string $fields 字段 例：id
 	 * @param array $array 条件值 例：array(1,3,4,23,5)
-	 * @param string $where_type 条件类别 [ MODEL_WHERE_RELA_AND、MODEL_WHERE_RELA_OR  默认 MODEL_WHERE_RELA_AND]
+	 * @param string $where_type 条件类别 'AND'、 'OR' 默认为AND
 	 * @return XF_Db_Table_Select_Interface
 	 */
 	public function setWhereNotIn($field, Array $array = array(), $where_type = 'AND');

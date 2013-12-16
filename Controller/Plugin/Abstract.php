@@ -20,7 +20,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 设置请求对象
-     *
+     * @access public
      * @param XF_Controller_Request_Abstract $request
      * @return XF_Controller_Plugin_Abstract
      */
@@ -32,7 +32,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 获取请求对象
-     *
+     * @access public
      * @return XF_Controller_Request_Abstract $request
      */
     public function getRequest()
@@ -42,6 +42,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 路由开始执行时调用
+     * @access public
      * @param XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -50,6 +51,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 路由完成时调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -58,6 +60,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 转发控制器之前调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -66,6 +69,7 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * 转发控制器之后调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -74,6 +78,7 @@ abstract class XF_Controller_Plugin_Abstract
     
 	/**
      * Action执行之前调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -82,14 +87,25 @@ abstract class XF_Controller_Plugin_Abstract
 
     /**
      * Action执行之后调用[渲染模板之前]
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
     public function postAction(XF_Controller_Request_Abstract $request)
     {}
     
+     /**
+     * 模板渲染完成之后[输出之前]
+     * @access public
+     * @param string $html 将要输出到前台的内容
+     * @return void
+     */
+    public function postRender(&$html)
+    {}
+    
 	/**
      * 404时调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      * @throws XF_Controller_Exception
@@ -101,6 +117,7 @@ abstract class XF_Controller_Plugin_Abstract
     
 	/**
      * 监听全局发现的异常
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @param  XF_Exception $e
      * @return void

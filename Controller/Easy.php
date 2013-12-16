@@ -11,7 +11,7 @@
  * @desc 简单的控制器基类
  * @author jingke
  */
-abstract class XF_Controller_Easy
+abstract class XF_Controller_Easy implements XF_Controller_Interface
 {
 
 	/**
@@ -35,9 +35,16 @@ abstract class XF_Controller_Easy
 	}
 	
 	/**
-	 * 执行控制器动作
-	 * @return string
+	 * 获取额外的操作数据
+	 * @access public
+	 * @param string $name 数据名称
+	 * @return mixed
 	 */
+	public function __get($name)
+	{
+		return XF_Controller_Front::getInstance()->getHandleData($name);
+	}
+	
 	public function doAction()
 	{
 		$method = $this->_request->getAction().'Action';
@@ -45,19 +52,18 @@ abstract class XF_Controller_Easy
 		{
 			call_user_func(array($this->_controller,$method));
 		}
+		else
+		{
+			throw new XF_Controller_Exception('Action 不存在', 404);
+		}
 	}
+
 	
-	/**
-	 * 是否存在Action
-	 * @param string $action_name 动作名称[默认为当前请求的Action]
-	 * @return bool
-	 */
 	public function hasAction($action_name)
 	{
 		$this->_checkControllerInstance();
 		$methods = get_class_methods($this->_controller);
 		return array_search($action_name, $methods);
-
 	}
 	
 	/**
@@ -70,21 +76,18 @@ abstract class XF_Controller_Easy
 			throw new XF_Controller_Exception('Controller instance invalid!');
 	}
 	
-	/**
-	 * 获取参数值
-	 * @param string $key
-	 * @param mixed $default
-	 * @return mixed
-	 */
 	public function getParam($key , $default = NULL)
 	{
 		return $this->_request->getParam($key, $default);
 	}
+
+	public function getParamNumber($key, $default = 0)
+	{
+		$val = $this->_request->getParam($key, $default);
+		if ($default == $val) return $val;
+		return is_numeric($val) ? floatval($val) : $default;
+	}
 	
-	/**
-	 * 获取所有参数列表
-	 * @return mixed
-	 */
 	public function getParams()
 	{
 		return $this->_request->getParams();

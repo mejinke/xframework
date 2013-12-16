@@ -1,5 +1,4 @@
 <?php
-if(!defined('APPLICATION_PATH'))die('Cannot access the file !');
 /**
  * 
  * -+-----------------------------------
@@ -32,6 +31,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
 	 * 获取当前实例
+	 * @access public
 	 * @return XF_Controller_Plugin_Manage
 	 */
 	public static function getInstance()
@@ -45,6 +45,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
 	 * 注册插件
+	 * @access public
 	 * @param XF_Controller_Plugin_Abstract $plugin
 	 * @return XF_Controller_Plugin_Manage
 	 */
@@ -64,6 +65,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
 	 * 删除插件
+	 * @access public
 	 * @param XF_Controller_Plugin_Abstract $plugin
 	 * @return XF_Controller_Plugin_Manage
 	 */
@@ -79,6 +81,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
 	 * 是否存在指定的插件
+	 * @access public
 	 * @param XF_Controller_Plugin_Abstract $plugin
 	 * @return bool
 	 */
@@ -95,6 +98,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
 	 * 获取所有的插件
+	 * @access public
 	 * @return array
 	 */
 	public function getPlugins()
@@ -104,6 +108,7 @@ class XF_Controller_Plugin_Manage
 	
 	/**
      * 路由开始执行时调用
+     * @access public
      * @param XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -117,6 +122,7 @@ class XF_Controller_Plugin_Manage
 
     /**
      * 路由完成时调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -130,6 +136,7 @@ class XF_Controller_Plugin_Manage
 
     /**
      * 转发控制器之前调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -143,6 +150,7 @@ class XF_Controller_Plugin_Manage
 
     /**
      * 转发控制器之后调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -156,6 +164,7 @@ class XF_Controller_Plugin_Manage
     
 	/**
      * Action执行之前调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -169,6 +178,7 @@ class XF_Controller_Plugin_Manage
 
     /**
      * Action执行之后调用[渲染模板之前]
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -181,7 +191,22 @@ class XF_Controller_Plugin_Manage
     }
     
 	/**
+     * 模板渲染完成之后[输出之前]
+     * @access public
+     * @param string $html 将要输出到前台的内容
+     * @return string 将要输出到前台的内容
+     */
+    public function postRender(&$html)
+    {
+    	foreach ($this->_plugins as $key => $plugin)
+		{
+			$plugin->postRender($html);
+		}
+    }
+    
+	/**
      * 404时调用
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
@@ -200,13 +225,14 @@ class XF_Controller_Plugin_Manage
 				{
 					$emptyPlugin = false;
 					$plugin->exception404($request);
+					break;
 				}
 			}		
 		}
 		if ($emptyPlugin == true)
 		{
 			if ($e == null)
-				throw new XF_Exception('404 Not found!', 404);
+				echo new XF_Exception('404 Not found', 404);
 			else
 				throw $e;	
 		} 		
@@ -214,6 +240,7 @@ class XF_Controller_Plugin_Manage
     
 	/**
      * 全局异常
+     * @access public
      * @param  XF_Controller_Request_Abstract $request
      * @param  XF_Exception $e
      * @return void
@@ -240,12 +267,11 @@ class XF_Controller_Plugin_Manage
 				{
 					$emptyPlugin = false;
 					$plugin->exception($request, $e);
+					break;
 				}
 			}
 				
 		}
-		
-		if ($emptyPlugin == true)
-			throw $e;
+		if ($emptyPlugin == true) echo $e;
     }
 }

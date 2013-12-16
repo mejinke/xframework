@@ -14,26 +14,22 @@
 class XF_File
 {
 
-
 	/**
 	 * 读取一个文 件
 	 * @access public
 	 * @param string $file 文件路径
-	 * @param bool $error 出错时是否终止程序 TRUE
+	 * @throws XF_File_Exception
 	 * @return mixed
 	 */
-	public static function read($file, $error = TRUE)
+	public static function read($file)
 	{
-		if(!@$fp = @fopen($file, 'rb'))
+		if(!$fp = fopen($file, 'rb'))
 		{
-			if ($error)
-				throw new XF_File_Exception('Could not read this file!');
-			else
-				return false;
+			throw new XF_File_Exception('Could not read this file!');
 		}
 		else
 		{
-			@$data = fread($fp, filesize($file));
+			$data = fread($fp, filesize($file));
 			fclose($fp);
 			return $data;
 		}
@@ -45,24 +41,20 @@ class XF_File
 	 * @param string $file 文件路径
 	 * @param string $content 将 要写入的内容
 	 * @param string $mod 写入模式
-	 * @param bool $error 出错时是否终止程序 TRUE
+	 * @throws XF_File_Exception
 	 * @return bool
 	 */
-	public static function write($file, $content, $mod = 'w', $error = TRUE)
+	public static function write($file, $content, $mod = 'w')
 	{
-	
-		if(!@$fp = @fopen($file, $mod))
+		if(!$fp = fopen($file, $mod))
 		{
-			if($error)
-				throw new XF_File_Exception('Could not read this file!');
-			else
-				return false;
+			throw new XF_File_Exception('Could not read this file!');
 		}
 		else
 		{
-			@flock($fp, 2);
-			@fwrite($fp, $content);
-			@fclose($fp);
+			flock($fp, 2);
+			fwrite($fp, $content);
+			fclose($fp);
 			return true;
 		}
 	}
@@ -109,7 +101,7 @@ class XF_File
 	public  static function  mkdirs($path, $mode = 0755)
 	{
 		is_dir(dirname($path)) || XF_File::mkdirs(dirname($path), $mode);
-		return is_dir($path) || @mkdir($path, $mode);
+		return is_dir($path) || mkdir($path, $mode);
 	}
 
 	/**
@@ -394,7 +386,7 @@ class XF_File
 		//HTML上传控件名称
 	    $fileName = isset($options['inputName']) ? $options['inputName'] : 'upload_input';
 		//允许上传大小
-		$maxlimit = isset($options['maxSize']) ? $options['maxSize']*1024 : '8388608'; //8M
+		$maxlimit = isset($options['maxSize']) ? $options['maxSize']*1024*1024 : 8 * 1024 * 1024; //8M
 		//保存目录
 		$folder = isset($options['folder']) ? $options['folder'] : null;
 		
@@ -439,7 +431,6 @@ class XF_File
 					if(move_uploaded_file($temp_name, $folder.'/'.$newFileName))
 					{
 						$path = str_replace(realpath($_SERVER['DOCUMENT_ROOT']), '', realpath($folder)).'/';
-					//	echo realpath($folder);
 						$folder = realpath($folder.'/');
 						$return['status'] = 'success';
 						$return['fileDir'] = realpath($folder.'/');

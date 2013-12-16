@@ -11,7 +11,7 @@
  * @desc 标准时间格式验证 例:2012-10-26 17:32:19
  * @author jingke
  */
-class XF_String_Validate_Time implements XF_String_Validate_Interface   
+class XF_String_Validate_Time implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

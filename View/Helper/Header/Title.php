@@ -98,7 +98,6 @@ class XF_View_Helper_Header_Title
 	
 	/**
 	 * 清空标题
-	 * @access public
 	 * @return XF_View_Helper_Header_Title
 	 */
 	public function clear()
@@ -106,7 +105,7 @@ class XF_View_Helper_Header_Title
 		$this->_title = '';
 		return $this;
 	}
-
+	
 	/**
 	 * 获取标题内容
 	 * @access public

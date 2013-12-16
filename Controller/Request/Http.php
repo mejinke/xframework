@@ -20,6 +20,9 @@ class XF_Controller_Request_Http extends XF_Controller_Request_Abstract
 	 */
 	private static $_instance = NULL;
 	
+	private function __construct(){}
+	private function __clone(){}
+	
 	/**
 	 * 获取当前实例
 	 * @return XF_Controller_Request_Http
@@ -272,5 +275,15 @@ class XF_Controller_Request_Http extends XF_Controller_Request_Abstract
             }
         }
         return false;
+    }
+    
+    /**
+     * 获取当前请求的完整URL
+     * @access public
+     * @return string
+     */
+    public function getRequestUrl()
+    {
+    	return 'http://'.$this->getServer('HTTP_HOST').$this->getServer('REQUEST_URI');
     }
 }

@@ -54,7 +54,21 @@ class XF_String
 		return $new_str;
 	}
 
-
+	/**
+	 * 指定的内容只替换一次
+	 * @param string $search 要查找的内容
+	 * @param string $replace 要替换的内容
+	 * @param string $string 原字符串
+	 * @return string
+	 */
+	public static function str_replace_once($search, $replace, $string) {
+	   $pos = strpos($string, $search);
+	   if ($pos === false) {
+	      return $haystack;
+	   }
+	   return substr_replace($string, $replace, $pos, strlen($search));
+	}
+	
 	/**
 	 * 将字符串转换为HTML代码格式
 	 * @access public

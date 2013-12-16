@@ -11,7 +11,7 @@
  * @desc 身份证号码验证 15位或18位
  * @author jingke
  */
-class XF_String_Validate_Card implements XF_String_Validate_Interface   
+class XF_String_Validate_Card implements XF_Validate_Interface
 {
 	public static function validate($var)
 	{

@@ -85,7 +85,7 @@ class XF_Functions
             for($i=0; $i<count($keys); $i++)
             {
                 $tep = trim($array[$keys[$i]]);
-                if($tep=='')
+                if($tep == '')
                     unset($array[$keys[$i]]);
             }
         }
@@ -118,7 +118,7 @@ class XF_Functions
 	 */
 	public static function isEmpty($var)
 	{
-		if ($var === false || $var === null || $var == '' || (is_array($var) && count($var)==0) || $var == ' ' )
+		if ($var === false || $var === null || $var === '' || (is_array($var) && count($var)==0) || $var === ' ' )
 			return true;
 		
 		return false;
@@ -131,7 +131,7 @@ class XF_Functions
 	 */
 	public static function authCode($string, $operation = 'ENCODE')
 	{
-		$key = md5("*!mV-=");
+		$key = md5("*!mV-XF[x0O-9gIU]=");
 		$key_length = strlen($key);
 	
 		$string = $operation == 'DECODE' ? base64_decode($string) : substr(md5($string.$key), 0, 8).$string;
@@ -176,43 +176,6 @@ class XF_Functions
 	}
 	
 	/**
-	 * edauth参数解释 By PGcao 排骨
-	 * @param string $string 明文 或 密文
-	 * @param bool $operation false表示解密,true表示加密
-	 * @param int $outtime 密文有效期, 单位为秒
-	 * @param string $key 密匙
-	 * @param string $entype 加密方式 有md5和sha1两种 加密解密需要统一使用同一种方式才能正确还原明文
-	 */
-	function edauth($string, $operation = true ,$outtime = 0, $key = '!~*VM,01&?', $entype = 'md5'){
-	    $key_length = 4;
-	    if($entype == 'md5'){ //使用md5方式
-	      $long_len = 32; $half_len = 16; $entype == 'md5';
-	    }else{ //使用sha1方式
-	      $long_len = 40; $half_len = 20; $entype == 'sha1';
-	    }
-	    $key = md5($key);
-	        $fixedKey = hash($entype, $key); 
-	    $egiskeys = md5(substr($fixedKey, $half_len, $half_len)); 
-	        $runtoKey = $key_length ? ($operation ? substr(hash($entype, microtime(true)), -$key_length) : substr($string, 0, $key_length)) : ''; 
-	        $keys = hash($entype, substr($runtoKey, 0, $half_len) . substr($fixedKey, 0, $half_len) . substr($runtoKey, $half_len) . substr($fixedKey, $half_len));
-	        $string = $operation ? sprintf('%010d', $outtime ? $outtime + time() : 0).substr(md5($string.$egiskeys), 0, $half_len) . $string : base64_decode(substr($string, $key_length)); 
-	        $i = 0; $result = ''; 
-	        $string_length = strlen($string);
-	        for ($i = 0; $i < $string_length; $i++){
-	            $result .= chr(ord($string{$i}) ^ ord($keys{$i % $long_len})); 
-	        }
-	    if($operation){
-	      return $runtoKey . str_replace('=', '', base64_encode($result));
-	    }else{
-	            if((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, $half_len) == substr(md5(substr($result, $half_len+10).$egiskeys), 0, $half_len)) {
-	                return substr($result, $half_len+10);
-	            } else {
-	                return '';
-	            }
-	    }
-	}
-	
-	/**
 	 * 将数字转换成字符串
 	 * @param float double integer $value
 	 * @return string
@@ -230,8 +193,10 @@ class XF_Functions
 	 * URL 跳转
 	 * @access public
 	 * @param string $url 跳转的URL
+	 * @param int $code 重定向状态码 默认为302
+	 * @return void
 	 */
-	public static function go($url = '')
+	public static function go($url = '', $code = 302)
 	{
 		//检测是否存在对应的扩展
 		if(function_exists('go'))
@@ -239,6 +204,10 @@ class XF_Functions
 			go($url);
 			return;
 		}
+		
+		if ($code == 301)
+			header('HTTP/1.1 301 Permanently Moved');
+			
 		if(substr($url,0,7)=='http://')
 			header("location:".$url);
 		else
@@ -251,6 +220,7 @@ class XF_Functions
 	 * @access public
 	 * @param String $msg 显示的消息
 	 * @param String $url 跳转的URL
+	 * @return void
 	 */
 	public static function alert($msg, $url='')
 	{
@@ -262,13 +232,13 @@ class XF_Functions
 		}
 		if(empty($url))
 		{
-			echo '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
+			echo '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
 			echo'<script>alert("'.$msg.'");history.go(-1);</script>';
 			echo '</body></html>';
 		}
 		else
 		{
-			echo '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
+			echo '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
 			echo'<script>alert("'.$msg.'");location.href=\''.$url.'\'</script>';
 			echo '</body></html>';
 		}
@@ -288,5 +258,99 @@ class XF_Functions
 			return;
 		}
 		echo'<script>self.location=document.referrer;</script>';
+	}
+	
+	/** 
+	 * 获取当前时间 
+	 * @access public
+	 * @return float 
+	 */ 
+	public static function getCurrentTime()
+    {
+        list ($msec, $sec) = explode(" ", microtime());
+        return (float)$msec + (float)$sec;
+    }
+    
+	/**
+	 * 获取过去或都未来的年月
+	 * @access public
+	 * @param int $sign 负数为过去的月份数，正数为未来的月份数
+	 * @return string
+	 */
+	public static function getOverFutureYearMonth($sign)
+	{
+		if($sign == 0) return date('Y-m');
+		
+	    //年份
+	    $tmp_year= date('Y');
+	    //月份
+	    $tmp_mon = date('m');
+	    //获取上X个月
+	    if($sign < 0)
+	    {
+	    	$sign = $sign*-1;
+	    	if($sign < $tmp_mon)
+	    		return date('Y-m', mktime(0, 0, 0, $tmp_mon-$sign, 1, $tmp_year));
+	    	if($sign == $tmp_mon)
+	    		return date('Y-m', mktime(0, 0, 0, 12, 1, $tmp_year-1));
+	
+	    	$tmp_year = $tmp_year-1;
+	    	$sign = $sign - $tmp_mon;
+	    	//有多少个12月
+	    	$x = floor($sign / 12);
+	    	if($x == 0)
+	    		return date('Y-m', mktime(0, 0, 0, $sign, 1, $tmp_year));
+	    	return date('Y-m', mktime(0, 0, 0, $sign-12*$x, 1, $tmp_year-$x));
+	    }
+	    //获取下X个月
+	    if($tmp_mon == 12)
+	    {
+	    	//有多少个12月
+	    	$x = floor($sign / 12);
+	    	if($x == 0)
+	    		return date('Y-m', mktime(0, 0, 0, $sign, 1, $tmp_year+1));
+	    	return date('Y-m', mktime(0, 0, 0, $sign-12*$x, 1, $tmp_year+$x));
+	    }
+	
+	    if($sign+$tmp_mon > 12)
+	    {
+	    	$sign = $sign - (12- $tmp_mon);
+	    	$tmp_year++;
+	    	//有多少个12月
+	    	$x = floor($sign / 12);
+	    	if($x == 0)
+	    		return date('Y-m', mktime(0, 0, 0, $sign, 1, $tmp_year));
+	    	return date('Y-m', mktime(0, 0, 0, $sign-12*$x, 1, $tmp_year+$x));
+	    }
+	    return date("Y-m", mktime(0, 0, 0, $sign+$tmp_mon, 1, $tmp_year));
+	}
+	
+	/**
+	 * 写入错误日志
+	 * @access public
+	 * @param string $message 内容
+	 * @return void
+	 */
+	public static function writeErrLog($message)
+	{
+		if (!is_scalar($message) && $message == '') return;
+		
+		$dir = TEMP_PATH.'/Logs/Error/'.date('md').'/';
+		if (!is_dir($dir)) XF_File::mkdirs($dir);
+		$file = $dir.date('H').'.log';
+		XF_File::write($file, '['.date('H:i:s').'] '.$message."\n", 'a+');
+	}
+	
+	/**
+	 * 写入日志
+	 * @access public
+	 * @param string $message 内容
+	 * @return void
+	 */
+	public static function log($message)
+	{
+		if (!is_scalar($message) && $message == '') return;
+		$file = TEMP_PATH.'/Logs/'.date('Y-m-d').'.log';
+		XF_File::write($file, '['.date('H:i:s').'] '.$message, 'a+');
 	}
 }

@@ -11,7 +11,7 @@
  * @desc 控制器抽象基类
  * @author jingke
  */
-abstract class XF_Controller_Abstract
+abstract class XF_Controller_Abstract implements XF_Controller_Interface
 {
 
 	/**
@@ -29,17 +29,18 @@ abstract class XF_Controller_Abstract
 	private $_controller;
 	
 	/**
-	 * 动作缓存时间[分钟] 0为不缓存
+	 * 缓存驱动
+	 * @access private
+	 * @var XF_Cache_Interface
+	 */
+	private $_cache_instance;
+	
+	/**
+	 * Action缓存时间[分钟] 0为不缓存
 	 * @access priviate
 	 * @var int
 	 */
 	private $_cache_time = 0;
-	
-	/**
-	 * Action缓存标识(生成缓存的key)
-	 * @var string
-	 */
-	private $_cache_sign = '';
 		
 	/**
 	 * 动作Action所使用的模板
@@ -76,15 +77,56 @@ abstract class XF_Controller_Abstract
 		$this->_view = XF_View::getInstance();
 	}
 	
+	/**
+	 * 获取额外的操作数据
+	 * @access public
+	 * @param string $name 数据名称
+	 * @return mixed
+	 */
+	public function __get($name)
+	{
+		return XF_Controller_Front::getInstance()->getHandleData($name);
+	}
+	
+	/**
+	 * 获取当前Action对应的缓存标识【需要缓存的Action，控制器中都应该重写该方法】
+	 * <br/><b>●强烈建议不要在该方法中操作数据库以及过于复杂的业务逻辑</b>
+	 * @access protected
+	 * @param string $action_name 当前请求的Action名称
+	 * @return string 缓存标识，默认为空
+	 */
+	protected function __cacheSign($action_name)
+	{
+		return '';
+	}
+	
+	/**
+	 * 获取当前Action最终对应的缓存标识
+	 * @access private
+	 * @param string
+	 */
+	private function getCacheSign()
+	{
+		$sign = $this->__cacheSign($this->_request->getAction());
+		if($sign == '')
+		{
+			if ($this->_cache_time > 0)
+			{
+				return md5($this->_request->getModule().$this->_request->getController().$this->_request->getAction().serialize($this->_request->getCustomParams(false)));
+			}
+			return '';
+		}
+		return md5($sign);
+	}
 	
 	/**
 	 * 执行控制器动作
-	 * @return string
+	 * @access public
+	 * @return void
 	 */
 	public function doAction()
 	{
 		$plugins = XF_Controller_Plugin_Manage::getInstance();
-		$this->_checkActionRequestParams();
 		//当前Action是否存在文件缓存
 		if ($content = $this->_checkCacheContent())
 		{
@@ -94,56 +136,36 @@ abstract class XF_Controller_Abstract
 		$this->_checkControllerInstance();
 		$actionName = $this->_request->getAction();			
 		$valiMethod = 'validate'.ucfirst($actionName);
-		$method = $actionName;
+		$method = $actionName.'Action';
 		$methods = get_class_methods($this->_controller);
 		
-		//控制器构造函数里可以改变当前请的Action
-		if (strpos($method, '@') !== 0)
-		{
-			$valiMethod .= 'Action';
-			$method .= 'Action';
-		}
-		else 
-		{
-			$valiMethod = str_replace('@', '', $valiMethod);
-			$method = str_replace('@', '', $method);
-			XF_Controller_Request_Http::getInstance()->setAction($method);
-		}
+		//是否存在Action验证方法
 		if ($this->hasAction($valiMethod))
 		{ 
-			if(call_user_func(array($this->_controller,$valiMethod)) === true)
+			if(call_user_func(array($this->_controller, $valiMethod)) !== true)
 			{
-				if ($this->hasAction($method))
-				{
-					$plugins->preAction($this->_request);
-					call_user_func(array($this->_controller,$method));
-					$plugins->postAction($this->_request);
-					$this->_display();
-				}
-				else
-					$plugins->exception404($this->_request);
-			}
-			else
 				$plugins->exception404($this->_request);
-		}
-		else 
-		{	
-			if ($this->hasAction($method))
-			{
-				$plugins->preAction($this->_request);
-				call_user_func(array($this->_controller,$method));
-				$plugins->postAction($this->_request);
-				$this->_display();
+				return;
 			}
-			else
-				$plugins->exception404($this->_request);
 		}
 		
+		//是否存在要执行的Action
+		if ($this->hasAction($method))
+		{
+			$plugins->preAction($this->_request);
+			call_user_func(array($this->_controller,$method));
+			$plugins->postAction($this->_request);
+			$this->_render();
+			return;
+		}
+	
+		$plugins->exception404($this->_request);
 	}
 	
 	/**
 	 * 是否存在Action
-	 * @param string $action_name 动作名称[默认为当前请求的Action]
+	 * @access public
+	 * @param string $action_name 动作名称
 	 * @return bool
 	 */
 	public function hasAction($action_name)
@@ -151,21 +173,34 @@ abstract class XF_Controller_Abstract
 		$this->_checkControllerInstance();
 		$methods = get_class_methods($this->_controller);
 		return array_search($action_name, $methods);
-
 	}
 	
 	/**
 	 * 控制器实例是否为空？
+	 * @access protected
 	 * @return void
 	 */
 	protected function _checkControllerInstance()
 	{
 		if ($this->_controller == null)
-			throw new XF_Controller_Exception('Controller instance invalid!');
+			throw new XF_Controller_Exception('Controller instance invalid');
+	}
+	
+	/**
+	 * 设置Action的缓存驱动对象
+	 * @access public
+	 * @param XF_Cache_Interface $cache
+	 * @return XF_Controller_Abstract
+	 */
+	public function setCache(XF_Cache_Interface $cache)
+	{
+		$this->_cache_instance = $cache;
+		return $this;	
 	}
 	
 	/**
 	 * 设置Action缓存时间
+	 * @access public
 	 * @param int $minutes
 	 * @return XF_Controller_Abstract
 	 */
@@ -177,21 +212,10 @@ abstract class XF_Controller_Abstract
 		}
 		return $this;
 	}
-	
-	/**
-	 * 设置Action的缓存标识(生成缓存的唯一key)
-	 * @param string $var
-	 * @return XF_Controller_Abstract
-	 */
-	public function setCacheSign($var)
-	{
-		if (is_string($var))
-			$this->_cache_sign = $var;
-		return $this;
-	}
-	
+
 	/**
 	 * 设置模板文件
+	 * @access public
 	 * @param string $tpl
 	 * @return XF_Controller_Abstract
 	 */
@@ -208,11 +232,12 @@ abstract class XF_Controller_Abstract
 			return $this;
 		}
 		else
-			throw new XF_Controller_Exception('Action模板文件不存在!');
+			throw new XF_Controller_Exception('Action template not found');
 	}
 	
 	/**
 	 * 设置布局模板文件
+	 * @access public
 	 * @param XF_View_Layout_Abstract $layout 布局对象
 	 * @return XF_Controller_Abstract
 	 */
@@ -224,6 +249,7 @@ abstract class XF_Controller_Abstract
 	
 	/**
 	 * 获取参数值
+	 * @access public
 	 * @param string $key
 	 * @param mixed $default
 	 * @return mixed
@@ -234,7 +260,21 @@ abstract class XF_Controller_Abstract
 	}
 	
 	/**
+	 * 获取参数，预期该参数的值为数字
+	 * @access public
+	 * @param string $key 参数名称
+	 * @param number $default 如果该参数不存在，需要返回的值，默认为 0
+	 */
+	public function getParamNumber($key, $default = 0)
+	{
+		$val = $this->_request->getParam($key, $default);
+		if ($default == $val) return $val;
+		return is_numeric($val) ? floatval($val) : $default;
+	}
+	
+	/**
 	 * 获取所有参数列表
+	 * @access public
 	 * @return mixed
 	 */
 	public function getParams()
@@ -256,18 +296,27 @@ abstract class XF_Controller_Abstract
 	
 	/**
 	 * 渲染模板 并输出
+	 * @access private
 	 * @param bool $echo 是否直接输出？默认为true
 	 * @return mixed
 	 */
-	private function _display($echo = true)
+	private function _render($echo = true)
 	{
 		if ($this->_is_render_view === FALSE)
 			return true;
-		$content = $this->_view->render($this->_action_template, $this->_cache_time, $this->_layout);
+
+		if ($this->_cache_instance == NULL)
+				$this->_cache_instance = XF_Cache_SECache::getInstance();
+				
+		$html = $this->_view
+				->setCache($this->_cache_instance)
+				->setCacheTime($this->_cache_time)
+				->render($this->_action_template, $this->getCacheSign(), $this->_layout);
+
 		if ($echo === false) 
-			return $content;
+			return $html;
 		else 
-			echo $content;
+			echo $html;
 	}
 	
 	/**
@@ -277,7 +326,7 @@ abstract class XF_Controller_Abstract
 	public function getTemplateContent()
 	{
 		$this->_is_render_view = TRUE;
-		return $this->_display(false);
+		return $this->_render(false);
 	}
 	
 	/**
@@ -287,74 +336,72 @@ abstract class XF_Controller_Abstract
 	 */
 	private function _checkCacheContent()
 	{
-		require_once XF_PATH.'/Custom/secache/secache.php';
-		
-		$cache_file = TEMP_PATH.'/Cache/ActionViewCache.php';
-		if (!is_file($cache_file)) return null;
+		$key = $this->getCacheSign();
+		if ($key == '') return;
 
-		//缓存文件名称
-		$key = md5($this->_request->getModule().$this->_request->getController().$this->_request->getAction().serialize($this->_request->getCustomParams(false)));
-
-		$secache = new secache();
-		$secache->workat(TEMP_PATH.'/Cache/ActionViewCache');
-		if($secache->fetch($key, $content))
+		//如果没有设置缓存类型，则默认为secache
+		if ($this->_cache_instance == null)
+				$this->_cache_instance = XF_Cache_SECache::getInstance();
+				
+		if ($this->_cache_instance instanceof XF_Cache_SECache)
 		{
-			preg_match('/<\!--##(.*?)##-->/',$content,$tep_array);
-			if(isset($tep_array[1]))
+			$cache_file = TEMP_PATH.'/Cache/ActionViewCache';
+			if (!is_file($cache_file.'.php')) return null;
+			$this->_cache_instance->setCacheSaveFile($cache_file);
+		}
+
+		$content = $this->_cache_instance->read($key);
+		if ($content == XF_CACHE_EMPTY) return null;
+		
+		//检测布局
+		preg_match('/<!--Layout:(.*?)-->/', $content, $matches);
+
+		if (isset($matches[0]))
+		{
+			$tmp = explode(',', $matches[1]);
+			$layoutName = $tmp[0];
+			$layout = new $layoutName();
+			$layout->setCacheTime($tmp[1]);
+			$layout->setCacheType($tmp[2]);
+			
+			//清除布局标记
+			$content = str_replace($matches[0], '', $content);
+			
+			//执行布局对象，并渲染布局模板
+			if ($layout instanceof XF_View_Layout_Abstract)
 			{
-				$tmp = explode('|',$tep_array[1]);
-				$_timeTag = explode(':', $tmp[0]);
-				if (time()>$_timeTag[0]+$_timeTag[1]*60)
-					return null;
-				else //没有过期
-				{
-					$content = str_replace($tep_array[0],'',$content);
-					//是否启用布局
-					if (isset($tmp[1]))
-					{
-						$layoutName = $tmp[1];
-						$layout = new $layoutName();
-						$tep = explode(':', $tmp[2]);
-						$layout->setCacheTime($tep[0]);
-						$layout->setCacheType($tep[1]);
-						//执行布局对象，并渲染布局模板
-						if ($layout instanceof XF_View_Layout_Abstract)
-						{
-							//获取缓存的标题等信息
-							$this->_checkCacheTitleMetaSctiptStylesheets($content);
-							
-							$layout->assign('$layoutContent',$content);
-							$content = $layout->render();
-						}
-					}
-					return $content;
-				}
+				//获取缓存的标题等信息
+				$this->_checkCacheHtmlTag($content);
+				$layout->assign('$layoutContent', $content);
+				$content = $layout->render();
 			}
 		}
- 
-		return null;
+		
+		return $content;
 	}
 	
 	
 	
 	/**
 	 * 检测缓存的标题等资料
+	 * @access private
 	 * @param string $content
+	 * @return void
 	 */
-	private function _checkCacheTitleMetaSctiptStylesheets(&$content)
+	private function _checkCacheHtmlTag(&$content)
 	{
 		//title
-		preg_match('/<\!--###TITLE:(.*?)###-->/',$content,$matchs);
+		preg_match('/<\!--Title:(.*?)-->/', $content, $matchs);
 		if (isset($matchs[1]))
 		{
 			$this->_view->headTitle($matchs[1]);
-			$content = str_replace($matchs[0]."\n", '', $content);
+			$content = str_replace($matchs[0], '', $content);
 		}
+		
 		//metas
-		preg_match('/<\!--###METAS:(.*?)###-->/',$content,$matchs);
+		preg_match('/<\!--Metas:(.*?)-->/', $content, $matchs);
 		if (isset($matchs[1]))
 		{
-			 
 			$tmp = unserialize($matchs[1]);
 			if (is_array($tmp))
 			{
@@ -363,11 +410,11 @@ abstract class XF_Controller_Abstract
 					$this->_view->headMeta($val);
 				}
 			}
-			$content = str_replace($matchs[0]."\n", '', $content);
+			$content = str_replace($matchs[0], '', $content);
 		}
 		
 		//scripts
-		preg_match('/<\!--###SCRIPTS:(.*?)###-->/',$content,$matchs);
+		preg_match('/<\!--Scripts:(.*?)-->/', $content, $matchs);
 		if (isset($matchs[1]))
 		{
 			 
@@ -379,14 +426,13 @@ abstract class XF_Controller_Abstract
 					$this->_view->headScript($val);
 				}
 			}
-			$content = str_replace($matchs[0]."\n", '', $content);
+			$content = str_replace($matchs[0], '', $content);
 		}
 		
 		//stylesheets
-		preg_match('/<\!--###STYLESHEETS:(.*?)###-->/',$content,$matchs);
+		preg_match('/<\!--Stylesheets:(.*?)-->/', $content, $matchs);
 		if (isset($matchs[1]))
 		{
-			 
 			$tmp = unserialize($matchs[1]);
 			if (is_array($tmp))
 			{
@@ -397,73 +443,20 @@ abstract class XF_Controller_Abstract
 			}
 			$content = str_replace($matchs[0], '', $content);
 		}
-	}
-	
-	
-	/**
-	 * 过滤自定义Request参数规则  appName/config/request.inc.php
-	 * @return void
-	 */
-	private function _checkActionRequestParams()
-	{
 		
-		//Request参数配置文件是否存在
-		$incFile = XF_Controller_Front::getInstance()->getModuleDir().'/configs/request.inc.php';
-
-		if (!is_file($incFile))
-			return true;
-		$config = require $incFile;
- 
-		//是否存在当前Action Request参数配置
-		if (isset($config[ucfirst($this->_request->getController()).'Controller'][$this->_request->getAction().'Action']))
+		//links
+		preg_match('/<\!--Links:(.*?)-->/', $content, $matchs);
+		if (isset($matchs[1]))
 		{
-			$params = $config[ucfirst($this->_request->getController()).'Controller'][$this->_request->getAction().'Action'];
-			$getParams_key = array_keys($this->_request->getCustomParams(false));
-			$params_key = array_keys($params);
-			$count = count($getParams_key);
-			for ($i=0; $i<$count; $i++)
+			$tmp = unserialize($matchs[1]);
+			if (is_array($tmp))
 			{
-				$key = $getParams_key[$i];
-				//存在正确的参数，检测是否为指定的类型
-				if (array_search($key, $params_key)!== false )
+				foreach ($tmp as $val)
 				{
-					$error = false;
-					$type = is_array($params[$key]) && isset($params[$key]['type']) ? $params[$key]['type'] : $params[$key];
-					//检测参数类别是否为允许的
-					if ($type === 'int' && !is_numeric($this->getParam($key)))
-						$error = true;
-					elseif ($type === 'string' && is_numeric($this->getParam($key)))
-						$error = true;
-					
-					//符合参数类型条件时，校正参数值
-					if ($error === false)
-					{
-						//是否在指定值范围内
-						$value = is_array($params[$key]) && isset($params[$key]['value']) ? $params[$key]['value'] : null;
-						if ($value !== null)
-						{
-							if(is_array($value) && array_search($this->getParam($key), $value) === false )
-							{ 
-								//校正参数值
-								if (is_array($params[$key]) && isset($params[$key]['default']) && $params[$key]['default'] !== null)
-									$this->_request->setParam($key, $params[$key]['default']);
-								else
-									$this->_request->clearParam($key);
-							}
-						}
-					}
-					else //参数类型不符合时，判断是否要设置默认值
-					{
-						//校正参数值
-						if (is_array($params[$key]) && isset($params[$key]['error_default']) && $params[$key]['error_default'] !== null)
-							$this->_request->setParam($key, $params[$key]['error_default']);
-						else
-							$this->_request->clearParam($key);
-					}
+					$this->_view->headLink($val);
 				}
-				else 
-					$this->_request->clearParam($key);
-			} 
+			}
+			$content = str_replace($matchs[0], '', $content);
 		}
-	}	
+	}
 }

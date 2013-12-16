@@ -59,33 +59,7 @@ class XF_Db_Tool
 			return $string;
 		}
 	}
-	
-	
-	/**
-	 * 条件数组格式化 MongoDB
-	 * @access public
-	 * @param mixed $var 条件数组或字符串
-	 * @return string
-	 */
-	public static function whereFormatFromMongoDB($var)
-	{
-		$array = array();
-		foreach($var as $k => $v)
-	 	{	
-	 		$arr = explode(',', $k);
-			$arr[1] = isset($arr[1]) ? $arr[1] : '';
-			if ($arr[1] == '')
-	 			$array[$arr[0]] = $v;
-	 		else
-	 		{
-	 			if ($arr[1] == '>')
-	 				$array[$arr[0]]['$gt'] = $v;
-	 			elseif ($arr[1] == '<')
-	 				$array[$arr[0]]['$lt'] = $v;
-	 		} 	
-	 	}
-	 	return $array;
-	}
+
 	
 	/**
 	 * 查询指定的字段格式化
@@ -113,34 +87,6 @@ class XF_Db_Tool
 		}
 	}
 	
-	/**
-	 * 查询指定的字段格式化 MongoDB
-	 * @access public
-	 * @param mixed $var 字符串或数组 
-	 * @return string
-	 */
-	public static function findFormatFromMongoDB($var)
-	{
-		$array = array();
-		if (!is_array($var))
-		{
-			$tep = explode(',', $var);
-			for ($i = 0; $i < count($tep); $i++)
-			{
-				$array[$tep[$i]] = 1;
-			}
-		}
-		else 
-		{
-			$tep = array_values($var);
-			for ($i = 0; $i < count($tep); $i++)
-			{
-				$array[$tep[$i]] = 1;
-			}
-		}
-		
-		return $array;
-	}
 	
 	/**
 	 * in条件格式化
@@ -162,7 +108,7 @@ class XF_Db_Tool
 	}
 
 	/**
-	 * 获取config.inc.php 中配置的数据库名称
+	 * 获取配置文件中的数据库名称
 	 * @access public
 	 * @param string $var db_list 键名称
 	 * @return string 返回一个数据库名称
@@ -188,6 +134,7 @@ class XF_Db_Tool
 	{
 		if (is_object($value)) return '';
 		if(is_null($value)) return 'NULL';
+		if (is_string($value)) return $value;
 		if(is_bool($value)) return $value ? 1 : 0;
 		if(is_numeric($value)) return floatval($value);
 		if(@get_magic_quotes_gpc()) $value = stripslashes($value);

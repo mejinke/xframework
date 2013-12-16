@@ -11,7 +11,7 @@
  * @desc 是否存在中文汉字验证
  * @author jingke
  */
-class XF_String_Validate_Chinese implements XF_String_Validate_Interface   
+class XF_String_Validate_Chinese implements XF_Validate_Interface   
 {
 	public static function validate($var)
 	{

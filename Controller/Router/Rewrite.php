@@ -27,9 +27,9 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 		if (!isset($mArray['module']) || !isset($mArray['controller']) || !isset($mArray['action']))
 			throw new XF_Controller_Router_Rewrite_Exception('正则路由缺少对应的Module,Controller,Action数组！');
 		$this->_regex = $regex;
-		$this->_mAarray = $mArray;
-		$this->_paramsArray = $paramsArray;
-		$this->_redirectArray = $redirectArray;
+		$this->_ma_array = $mArray;
+		$this->_params_array = $paramsArray;
+		$this->_redirect_array = $redirectArray;
 	}
 		
 	/**
@@ -48,12 +48,12 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 		{
 			@preg_match($regex, $uri, $tmp); 
 			$this->_matchAnalysis($uri, $regex, $tmp, $k);
-			if ($this->_matchStatus == true)
+			if ($this->_match_status == true)
 			{
 				//是否存在重定向配置
-				if (isset($this->_redirectArray[$k]))
+				if (isset($this->_redirect_array[$k]))
 				{
-					$redirectUrl = $this->_redirectArray[$k];
+					$redirectUrl = $this->_redirect_array[$k];
 					$keys = null;
 					foreach ($tmp as $kk => $v)
 					{
@@ -70,7 +70,7 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 				
 		}
 		
-		return $this->_matchStatus;
+		return $this->_match_status;
 	}
 	
 	
@@ -91,25 +91,25 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
             if(XF_Config::getInstance()->getSaveDebug())
 			    XF_DataPool::getInstance()->addHash('DEBUG', 'Match_Rewrite', $regex);
 
-			$this->_matchStatus = TRUE;	
+			$this->_match_status = TRUE;	
 			$request = XF_Controller_Request_Http::getInstance();
-			$request->setModule($this->_mAarray['module'])
-					->setController($this->_mAarray['controller'])
-					->setAction($this->_mAarray['action']);
+			$request->setModule($this->_ma_array['module'])
+					->setController($this->_m_array['controller'])
+					->setAction($this->_ma_array['action']);
 			
 			//是否存在自定义的附加参数
-			if (isset($this->_mAarray['params']) && is_array($this->_mAarray['params']))
+			if (isset($this->_ma_array['params']) && is_array($this->_ma_array['params']))
 			{
-				foreach ($this->_mAarray['params'] as $k => $val)
+				foreach ($this->_ma_array['params'] as $k => $val)
 				{
 					$request->setParam($k, $val);
 				}
 			}
 			
 			//设置匹配到的参数
-			if (is_array($this->_paramsArray))
+			if (is_array($this->_params_array))
 			{
-				foreach ($this->_paramsArray as $key => $val)
+				foreach ($this->_params_array as $key => $val)
 				{
 					//指定的参数是否只匹配指定位置的规则
 					$keyTmp = explode(':', $key);

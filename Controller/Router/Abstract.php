@@ -17,13 +17,13 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
 	 * 参数列表
 	 * @var array
 	 */
-	protected $_invokeParams = array();
+	protected $_invoke_params = array();
 	
 	/**
 	 * 是否保存URI的各个值
 	 * @var bool
 	 */
-	protected $_saveUriValue = false;
+	protected $_save_uri_value = false;
 	
 	/**
 	 * 路由重写规则对象列表
@@ -36,7 +36,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
 	 * 路由规则调用顺序索引
 	 * @var array
 	 */
-	protected $_rewriteIndex = array();
+	protected $_rewrite_index = array();
 	
 	/**
 	 * 添加一个参数
@@ -47,7 +47,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
 	public function setParam($name, $value)
     {
         $name = (string) $name;
-        $this->_invokeParams[$name] = $value;
+        $this->_invoke_params[$name] = $value;
         return $this;
     }
 
@@ -58,7 +58,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
      */
     public function setParams(array $params)
     {
-        $this->_invokeParams = array_merge($this->_invokeParams, $params);
+        $this->_invoke_params = array_merge($this->_invoke_params, $params);
         return $this;
     }
 
@@ -69,8 +69,8 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
      */
     public function getParam($name)
     {
-        if(isset($this->_invokeParams[$name])) 
-            return $this->_invokeParams[$name];
+        if(isset($this->_invoke_params[$name])) 
+            return $this->_invoke_params[$name];
         
         return null;
     }
@@ -81,7 +81,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
      */
     public function getParams()
     {
-        return $this->_invokeParams;
+        return $this->_invoke_params;
     }
 
     /**
@@ -92,16 +92,16 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
     public function clearParams($name = null)
     {
         if (null === $name)
-            $this->_invokeParams = array();
-        elseif (is_string($name) && isset($this->_invokeParams[$name]))
-            unset($this->_invokeParams[$name]);
+            $this->_invoke_params = array();
+        elseif (is_string($name) && isset($this->_invoke_params[$name]))
+            unset($this->_invoke_params[$name]);
         elseif (is_array($name)) 
         {
             foreach ($name as $key) 
             {
-                if (is_string($key) && isset($this->_invokeParams[$key])) 
+                if (is_string($key) && isset($this->_invoke_params[$key])) 
                 {
-                    unset($this->_invokeParams[$key]);
+                    unset($this->_invoke_params[$key]);
                 }
             }
         }
@@ -116,7 +116,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
      */
     public function saveUriValue($state)
     {
-    	$this->_saveUriValue = $state;
+    	$this->_save_uri_value = $state;
     	return $this;
     }
     
@@ -133,18 +133,18 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
     	$name = (string) $name;
     	if ($index === NULL)
     	{
-    		if (count($this->_rewriteIndex) === 0)
-    			$this->_rewriteIndex[0] = $name;
+    		if (count($this->_rewrite_index) === 0)
+    			$this->_rewrite_index[0] = $name;
     		else 
     		{
-    			$array = array_keys($this->_rewriteIndex);
+    			$array = array_keys($this->_rewrite_index);
     			$index = end($array);
-    			$this->_rewriteIndex[$index+1] = $name;
+    			$this->_rewrite_index[$index+1] = $name;
     		}
     	}
     	else 
     	{
-            XF_Functions::arrayInsert($this->_rewriteIndex, $index, $name);
+            XF_Functions::arrayInsert($this->_rewrite_index, $index, $name);
     	}
         $this->_rewrites[$name] = $rewrite;
         return $this;
@@ -158,12 +158,12 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
     public function clearRewrites($name = null)
     {
     	if (null === $name)
-            $this->_rewrites = $this->_rewriteIndex = array();
+            $this->_rewrites = $this->_rewrite_index = array();
 
 
         elseif (is_string($name) && isset($this->_rewrites[$name]))
         {
-        	XF_Functions::arrayDeleteFromValue($this->_rewriteIndex, $name);
+        	XF_Functions::arrayDeleteFromValue($this->_rewrite_index, $name);
             unset($this->_rewrites[$name]);
         }
         elseif (is_array($name)) 
@@ -172,7 +172,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
             {
                 if (is_string($_name) && isset($this->_rewrites[$_name]))
                 {
-                    XF_Functions::arrayDeleteFromValue($this->_rewriteIndex, $_name);
+                    XF_Functions::arrayDeleteFromValue($this->_rewrite_index, $_name);
                     unset($this->_rewrites[$_name]);
                 }
             }
