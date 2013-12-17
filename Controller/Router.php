@@ -185,10 +185,18 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 		}
 
 		//当前分析到的模块是否有效
+		if ($this->_request->getModule() == 'unknown')
+		{
+			throw new XF_Controller_Router_Exception('404 Not found!', 404);
+		}
 		if (strtolower($this->_request->getModule()) != 'default' && $this->_close_all_module === true)
+		{
 			throw new XF_Controller_Router_Exception('The module is close', 404);
+		}
 		if (isset($this->_close_modules[strtolower($this->_request->getModule())]))
+		{
 			throw new XF_Controller_Router_Exception('The module is close', 404);
+		}
 			
 		$this->_readOldRequestParams();
 	}
