@@ -58,10 +58,11 @@ class XF_Cookie implements XF_Cookie_Interface
 	 * 写入内容
 	 * @param mixed $content
 	 * @param int $expire 过期时间 默认为一周7天 单位：秒
-	 * @param string $path 有效路径 默认为NULL
+	 * @param string $path 有效路径 默认为 "/"
+	 * @param string $domain 域，默认为配置文件中的 “domain”
 	 * @return XF_Cookie
 	 */
-	public function write($content, $expire = 604800, $path = '/' )
+	public function write($content, $expire = 604800, $path = '/', $domain = NULL)
 	{
 		if ($this->_lock == FALSE)
 		{
@@ -70,14 +71,16 @@ class XF_Cookie implements XF_Cookie_Interface
 				setcookie($this->_namespace,'1',time()-1, $path);
 			else
 			{
-				setcookie($this->_namespace, XF_Functions::authCode(serialize($content)), time()+$expire, $path);
+				if ($domain == NULL)
+				{
+					$domain = XF_Config::getInstance()->getDomain();
+				}
+				setcookie($this->_namespace, XF_Functions::authCode(serialize($content)), time()+$expire, $path, $domain);
 			}
 				
 			$this->_lock = FALSE;
 		}
-		
 		return $this;
-		
 	}
 	
 	/**
