@@ -67,9 +67,7 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 				}
 				break;
 			}
-				
 		}
-		
 		return $this->_match_status;
 	}
 	
@@ -94,7 +92,7 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 			$this->_match_status = TRUE;	
 			$request = XF_Controller_Request_Http::getInstance();
 			$request->setModule($this->_ma_array['module'])
-					->setController($this->_m_array['controller'])
+					->setController($this->_ma_array['controller'])
 					->setAction($this->_ma_array['action']);
 			
 			//是否存在自定义的附加参数
