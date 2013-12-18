@@ -156,6 +156,7 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 			call_user_func(array($this->_controller,$method));
 			$plugins->postAction($this->_request);
 			$this->_render();
+			$plugins->postOutput();
 			return;
 		}
 	
@@ -178,12 +179,15 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	/**
 	 * 控制器实例是否为空？
 	 * @access protected
+	 * @throws XF_Controller_Exception
 	 * @return void
 	 */
 	protected function _checkControllerInstance()
 	{
 		if ($this->_controller == null)
+		{
 			throw new XF_Controller_Exception('Controller instance invalid');
+		}
 	}
 	
 	/**
@@ -222,17 +226,21 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	public function setTemplate($tpl)
 	{
 		if (strpos($tpl, '.php') > 0)
+		{
 			$file = APPLICATION_PATH.'/'.$tpl;
+		}
 		else
+		{
 			$file = $this->_view->getTemplateStartLocation().'/'.$this->_request->getController().'/'.$tpl.'.php';
+		}
 			
 		if (is_file($file))
 		{
 			$this->_action_template = $file;
 			return $this;
 		}
-		else
-			throw new XF_Controller_Exception('Action template not found');
+		
+		throw new XF_Controller_Exception('Action template not found');
 	}
 	
 	/**
@@ -268,7 +276,10 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	public function getParamNumber($key, $default = 0)
 	{
 		$val = $this->_request->getParam($key, $default);
-		if ($default == $val) return $val;
+		if ($default == $val) 
+		{
+			return $val;
+		}
 		return is_numeric($val) ? floatval($val) : $default;
 	}
 	
@@ -303,20 +314,26 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	private function _render($echo = true)
 	{
 		if ($this->_is_render_view === FALSE)
+		{
 			return true;
-
+		}
+			
 		if ($this->_cache_instance == NULL)
-				$this->_cache_instance = XF_Cache_SECache::getInstance();
-				
+		{
+			$this->_cache_instance = XF_Cache_SECache::getInstance();
+		}
+	
 		$html = $this->_view
 				->setCache($this->_cache_instance)
 				->setCacheTime($this->_cache_time)
 				->render($this->_action_template, $this->getCacheSign(), $this->_layout);
 
 		if ($echo === false) 
+		{
 			return $html;
-		else 
-			echo $html;
+		}
+		
+		echo $html;	
 	}
 	
 	/**
@@ -337,12 +354,17 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	private function _checkCacheContent()
 	{
 		$key = $this->getCacheSign();
-		if ($key == '') return;
+		if ($key == '')
+		{
+			return;
+		} 
 
 		//如果没有设置缓存类型，则默认为secache
 		if ($this->_cache_instance == null)
-				$this->_cache_instance = XF_Cache_SECache::getInstance();
-				
+		{
+			$this->_cache_instance = XF_Cache_SECache::getInstance();
+		}
+
 		if ($this->_cache_instance instanceof XF_Cache_SECache)
 		{
 			$cache_file = TEMP_PATH.'/Cache/ActionViewCache';
@@ -351,7 +373,10 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		}
 
 		$content = $this->_cache_instance->read($key);
-		if ($content == XF_CACHE_EMPTY) return null;
+		if ($content == XF_CACHE_EMPTY)
+		{
+			return null;
+		}
 		
 		//检测布局
 		preg_match('/<!--Layout:(.*?)-->/', $content, $matches);
@@ -379,7 +404,6 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		
 		return $content;
 	}
-	
 	
 	
 	/**
