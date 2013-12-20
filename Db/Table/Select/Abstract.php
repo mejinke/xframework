@@ -74,6 +74,13 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 * @var XF_Cache_Interface
 	 */
 	protected $_cache_class = null;
+	
+	
+	/** 
+	 * 执行查询后是否需要重置缓存时间？默认为 true
+	 * @var bool
+	 */
+	protected $_query_after_clear_cache_time = TRUE;
 
 	/**
 	 * 需要查询的列
@@ -463,12 +470,15 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 * 设置数据缓存时间 ［单位：分钟］
 	 * @access public
 	 * @param int $minutes 时长分钟数
-	 * @return Model_Abstract
+	 * @param bool $queryAfterClear 执行完查询后重置缓存时间为零？ 默认为 TRUE
+	 * @return XF_Db_Table_Select_Abstract
 	 */
-	public function setCacheTime($minutes = 0)
+	public function setCacheTime($minutes = 0, $queryAfterClear = TRUE)
 	{
 		if (is_numeric($minutes) && $minutes != 0)
 			$this->_data_cache_time = $minutes;
+			
+		$this->_query_after_clear_cache_time = $queryAfterClear;
 		return $this;
 	}
 	
@@ -1209,8 +1219,12 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			$this->_adv_not_in = null;
 			$this->_adv_order = null;
 			$this->_adv_limit = null;
-			$this->_data_cache_time = 0;
 			$this->_show_query = false;
+			
+			if ($this->_query_after_clear_cache_time !== false)
+			{
+				$this->_data_cache_time = 0;
+			}
 		}
 		return $this;
 	}

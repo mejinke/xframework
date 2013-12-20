@@ -173,12 +173,14 @@ interface XF_Db_Table_Select_Interface
 	 */
 	public function setCacheClass(XF_Cache_Interface $cache);
 	
+
 	/**
 	 * 设置数据缓存时间 ［单位：分钟］
 	 * @access public
 	 * @param int $minutes 时长分钟数
-	 * @return Model_Abstract
+	 * @param bool $queryAfterClear 执行完查询后重置缓存时间为零？ 默认为 TRUE
+	 * @return XF_Db_Table_Select_Abstract
 	 */
-	public function setCacheTime($minutes = 0);
+	public function setCacheTime($minutes = 0, $queryAfterClear = TRUE);
 	
 }
