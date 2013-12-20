@@ -872,7 +872,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   			
 			   		//主查询是否已缓存 
 			   		if ($this->_data_cache_time > 0 && $this->_cache_class instanceof  XF_Cache_Interface)
-			   			$select->setCacheClass($this->_cache_class)->setCache($this->_data_cache_time);
+			   			$select->setCacheClass($this->_cache_class)->setCacheTime($this->_data_cache_time);
 			   			
 			   		$rs = $select->execute($sql, true);
 			   		$allAssociateInfos[$fk.'=>'.$k.''] = $rs;
