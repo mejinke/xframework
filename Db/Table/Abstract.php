@@ -208,16 +208,11 @@ abstract class XF_Db_Table_Abstract
 	/**
 	 * 利用数组填充对象
 	 * @param Array $var
-	 * @param bool $filter_primary_key 是否过滤主键值? 默认true
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function fillDataFromArray(Array $var, $filter_primary_key = true)
+	public function fillDataFromArray(Array $var)
 	{
 		if (empty($var)) return;
-		
-		//开始检测字段缓存
-		$this->_makeCacheTableFields();
-		$this->_filterDataFromCacheField($var, $filter_primary_key);
 		
 		$tmp = debug_backtrace();
 		$fromDBTable = false;
@@ -229,7 +224,13 @@ abstract class XF_Db_Table_Abstract
 			if (!isset($this->_result_array[$key]))
 				$this->_field_count++;
 			if (is_numeric($val))
-				$val = floatval($val);
+			{
+				$tmp = explode('.', $val);
+				if (strlen($tmp[0]) <= 14)
+				{
+					$val = floatval($val);
+				}
+			}
 			$this->_result_array[$key] = $val;
 			
 			if ($fromDBTable == true)
@@ -480,7 +481,7 @@ abstract class XF_Db_Table_Abstract
 	 * @param mixed $order 关联的数据的排序设置，默认为NULL，或例如：'id DESC'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociateObjectAss($name,$objectAssName, $isAuto = true, $size = 20, $where = NULL, $order = NULL)
+	public function setAssociateObjectAss($name, $objectAssName, $isAuto = true, $size = 20, $where = NULL, $order = NULL)
 	{
 		$this->_field_associate_object_asssetting[$name][$objectAssName] = array(
 			'assObjectName' => $this->_field_associateds[$name]['table'],
@@ -489,6 +490,28 @@ abstract class XF_Db_Table_Abstract
 			'where' => $where,
 			'order' => $order
 		);
+		return $this;
+	}
+	
+	/**
+	 * 设置当前类字段关联对象自己的关联状态【无法修改查询数量、条件、排序】
+	 * @param string $name 自定义关联名称
+	 * @param string $objectAssName 关联对象的自这义关联名称
+	 * @param bool $isAuto 是否设置为自动，默认为 true
+	 * @param mixed $size 关联数量。[该设置仅在关联类型(oneToMany)为一对多时有效]
+	 * @return XF_Db_Table_Abstract
+	 */
+	public function setAssociateObjectAssOnly($name, $objectAssName, $isAuto = true, $size = NULL)
+	{
+		$this->_field_associate_object_asssetting[$name][$objectAssName] = array(
+			'assObjectName' => $this->_field_associateds[$name]['table'],
+			'autoAssociated' => $isAuto
+		);
+		
+		if (is_numeric($size))
+		{
+			$this->_field_associate_object_asssetting[$name][$objectAssName]['size'] = $size;
+		}
 		return $this;
 	}
 	
@@ -513,6 +536,26 @@ abstract class XF_Db_Table_Abstract
 	}
 	
 	/**
+	 * 设置一个关联为自动状态 【无法修改查询数量、条件、排序】
+	 * @param string $name 自定义关联名称
+	 * @param mixed $size 关联数量。[该设置仅在关联类型(oneToMany)为一对多时有效]
+	 * @return XF_Db_Table_Abstract
+	 */
+	public function setAssociatedAutoOnly($name, $size = NULL)
+	{
+		if (isset($this->_field_associateds[$name]))
+		{
+			$this->_field_associateds[$name]['autoAssociated'] = true;
+			if (is_numeric($size))
+			{
+				$this->_field_associateds[$name]['size'] = $size;
+			}
+		}
+		return $this;
+	}
+	
+	
+	/**
 	 * 设置一个关联为手动状态 
 	 * @param string $name 自定义关联名称
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
@@ -533,7 +576,23 @@ abstract class XF_Db_Table_Abstract
 	}
 	
 	/**
+	 * 设置一个关联为手动状态 【无法修改查询数量、条件、排序】
+	 * @access public
+	 * @param string $name 自定义关联名称
+	 * @return XF_Db_Table_Abstract
+	 */
+	public function setAssociatedManualOnly($name)
+	{
+		if (isset($this->_field_associateds[$name]))
+		{
+			$this->_field_associateds[$name]['autoAssociated'] = false;
+		}
+		return $this;
+	}
+	
+	/**
 	 * 设置所有的关联为手动
+	 * @access public
 	 * @return XF_Db_Table_Abstract
 	 */
 	public function setAssociatedAllManual()
@@ -550,6 +609,7 @@ abstract class XF_Db_Table_Abstract
 	
 	/**
 	 * 获取字段关联配置列表
+	 * @access public
 	 * @return array
 	 */
 	public function getFieldAssociated()
@@ -557,9 +617,29 @@ abstract class XF_Db_Table_Abstract
 		return $this->_field_associateds;
 	}
 	
+	/**
+	 * 获取当前已开启自动关联的配置列表
+	 * @access public
+	 * @return array 【可能是一个空数组】
+	 */
+	public function getFieldAutoAssociated()
+	{
+		if (!is_array($this->_field_associateds)) return array();
+		$tmp = array();
+		foreach ($this->_field_associateds as $key => $val) 
+		{
+			if ($val['autoAssociated'] == true)
+			{
+				$tmp[$key] = $val;
+			}
+		}
+		
+		return $tmp;
+	}
 	
 	/**
 	 * 获取字段关联对象自己的关联设置列表
+	 * @access public
 	 * @return array
 	 */
 	public function getFieldAssociateObjectAssSetting()
@@ -581,6 +661,7 @@ abstract class XF_Db_Table_Abstract
 	
 	/**
 	 * 查询关联的数据
+	 * @access public
 	 * @param string $name　自定义关联名称
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
 	 * @param mixed $where 关联额外的字段查询条件。默认为NULL,可以是字符串或数组。
@@ -600,15 +681,13 @@ abstract class XF_Db_Table_Abstract
 			unset($this->_field_associateds[$name]['where']);
 		}
 			
-			
 		if ($order == null && isset($this->_field_associateds[$name]['order']))
 		{
 			$order = $this->_field_associateds[$name]['order'];
 			//还原设置
 			unset($this->_field_associateds[$name]['order']);
 		}
-			
-			
+				
 		if (isset($this->_field_associateds[$name]['size']))
 		{
 			$size = $this->_field_associateds[$name]['size'];
@@ -620,8 +699,8 @@ abstract class XF_Db_Table_Abstract
 	   	$table = new $tableName();
 	   
 		/////检测是否需要设置当前关联对象自己的关联状态
-	   	if (is_array($this->_field_associateds) && count($this->_field_associateds) > 0)
-	   	{
+	   	//if (is_array($this->_field_associateds) && count($this->_field_associateds) > 0)
+	   	//{
 	   		foreach ($this->_field_associateds as $_k => $_val)
 	   		{
 	   			if (isset($this->_field_associate_object_asssetting[$_k]))
@@ -632,15 +711,30 @@ abstract class XF_Db_Table_Abstract
 	   					if (get_class($table) == $mval['assObjectName'])
 	   					{
 	   						if ($mval['autoAssociated'] == true)
-	   							$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
-	   						else
+	   						{
+	   							if (!empty($mval['where']))
+	   							{
+	   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
+	   							}
+	   							else
+	   							{
+	   								$table->setAssociatedAutoOnly($mk, $mval['size']);
+	   							}
+	   						}
+	   						elseif (!empty($mval['where']))
+	   						{
 	   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order']);
+	   						}
+	   						else
+	   						{
+	   							$table->setAssociatedManualOnly($mk, $mval['size']);
+	   						}
 	   					}
 	   				}
 	   			}
 	   		}	
-	   	}
-		
+	   	//}
+
 	   	/////2013-4-9 是否设置了当前关联对象自动执行方法
 	   	$methods = $this->getInitAutoExecuteMethodFromAssociate($name);
 	   	if (is_array($methods))
@@ -653,10 +747,12 @@ abstract class XF_Db_Table_Abstract
    					call_user_func_array(array($table, 'addInitAutoExecuteMethod'), $m['params']);
    				}
    				else
+   				{
    					$table->addInitAutoExecuteMethod($m['method']);
+   				}
 	   		}
 	   	}
-	   	
+
 	   	//2013-1-9 实现一条关联可以设置多个字段，例如同时关联省份和城市，我们一般省份和城市记录都是在一个表里，结构都一样
 	   	$fieldValues = null;
 	   	$fieldNames = explode(',', $this->_field_associateds[$name]['field']);
@@ -684,9 +780,9 @@ abstract class XF_Db_Table_Abstract
 		//如果是一对多的查询
 		if ($this->_field_associateds[$name]['oneToMany'] === true)
 		{
-			return $select->setLimit($size)->fetchAll();
+			return $select->setLimit(false)->fetchAll();
 		}
-		elseif (count($fieldNames) > 1) 
+		elseif (count($fieldNames) > 1)
 		{
 			return $select->setLimit(count($fieldNames))->fetchAll();
 		}
@@ -694,15 +790,15 @@ abstract class XF_Db_Table_Abstract
 		return $select->fetchRow();
 	}
 	
-	
 	/**
 	 * 表数据校验
 	 * @return bool 
+	 * @param bool $is_insert 是否为插入前的验证？默认为 true
 	 * @throws XF_Db_Table_Exception
 	 */
-	public function validate()
+	public function validate($is_insert = TRUE)
 	{
-		return $this->_validateAllData(true);
+		return $this->_validateAllData(true, $is_insert);
 	}
 	
 	/**
@@ -713,7 +809,7 @@ abstract class XF_Db_Table_Abstract
 	 */
 	public function insert($validate = true, $allowPrimaryKey = false)
 	{
-		$this->getFormData($this->toArray(), false);
+		$this->getFormData($this->toArray(), true);
 		$this->_validateAllData($validate);
 		return $this->getTableSelect()->insert($allowPrimaryKey);
 	}
@@ -726,7 +822,7 @@ abstract class XF_Db_Table_Abstract
 	public function update($validate = true)
 	{	
 		$data = $this->_result_array;
-		$this->getFormData($this->toArray(), true);
+		$this->getFormData($this->toArray(), false);
 		$this->_validateAllData($validate, false);
 		$status = $this->getTableSelect()->update();
 		if ($data != NULL)
@@ -759,7 +855,7 @@ abstract class XF_Db_Table_Abstract
 		if ($is_insert == false)
 		{
 			//只验证发生改变的字段
-			$dbResultArray = $this->getDBResultArray(false);
+			$dbResultArray = $this->getDBResultArray();
 			if ($dbResultArray != null && is_array($data))
 			{
 				foreach ($dbResultArray as $key => $val)
@@ -769,7 +865,7 @@ abstract class XF_Db_Table_Abstract
 				}
 			}
 		}
-		
+
 		if(XF_Db_Table_Validate::getInstance()->validateData($data, $this->getFieldValidateRule()->toArray(), true, $this, $is_insert) === false)
 			throw new XF_Db_Table_Exception(XF_DataPool::getInstance()->get('TableFieldDataValidateError'));
 		else
@@ -788,7 +884,7 @@ abstract class XF_Db_Table_Abstract
 	 * 获取表单提交的数据
 	 * @access public
 	 * @param array $data 默认值
-	 * @param bool $filter_primary_key 是否同时获取主键值? 默认true
+	 * @param bool $filter_primary_key 是否过滤主键值? 默认true
 	 * @return mixed
 	 */
 	public function getFormData(Array $data = null, $filter_primary_key = true)
@@ -796,9 +892,14 @@ abstract class XF_Db_Table_Abstract
 		//获取表单数据
 		if(empty($data))
 			$data = XF_Controller_Request_Http::getInstance()->getPost();
-	 
+	 	
+		//开始检测字段缓存
+		$this->_makeCacheTableFields();
+		//过滤表单提交的数据
+		$this->_filterDataFromCacheField($data, $filter_primary_key);
+
 		$this->_result_array = array();
-		$this->fillDataFromArray($data, !$filter_primary_key);
+		$this->fillDataFromArray($data);
 		return $this->toArray();
 	}
 

@@ -47,6 +47,8 @@ class XF_Controller_Request_Http extends XF_Controller_Request_Abstract
 					self::$_instance->setPost($key, $val, false);
 				}
 			}
+			
+			unset($_GET);
 		}
 		return self::$_instance;
 	}

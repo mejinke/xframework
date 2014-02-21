@@ -87,6 +87,8 @@ class XF_Application
 	if ($e = error_get_last()) 
 	{
 		$env = XF_Config::getInstance()->getEnvironmental();
+		$req = XF_Controller_Request_Http::getInstance();
+		$url = $req->getMethod().' "'.$req->getRequestUrl().'"';
 	    switch($e['type'])
 	    {
 	      case E_ERROR:
@@ -95,15 +97,15 @@ class XF_Application
 	      case E_COMPILE_ERROR:
 	      case E_USER_ERROR:
 	        ob_end_clean();
-	        $message = 'ERROR: '.$e['message']. ' in '.$e['file'].' on line '.$e['line'];
-	        XF_Functions::writeErrLog($message);
+	        $message = $url."\n".'ERROR: '.$e['message']. ' in '.$e['file'].' on line '.$e['line'];
 	        if ($env == 'development')
 	        {
-	          exit($message);
+	         	exit($message);
 	        }
 	        else
 	        {
-	          throw new XF_Exception($message);
+	        	XF_Functions::writeErrLog($message);
+	          	throw new XF_Exception($message);
 	        }
 	        break;
 	    }
@@ -121,6 +123,8 @@ class XF_Application
 	public static function appError($errno, $errstr, $errfile, $errline)
 	{
 		$env = XF_Config::getInstance()->getEnvironmental();
+		$req = XF_Controller_Request_Http::getInstance();
+		$url = $req->getMethod().' "'.$req->getRequestUrl().'"';
 		switch ($errno) 
 		{
 			case E_ERROR:
@@ -128,15 +132,15 @@ class XF_Application
 		    case E_CORE_ERROR:
 		    case E_COMPILE_ERROR:
 		    case E_USER_ERROR:
-			    $message = 'ERROR: '.$errstr. ' in '.$errfile.' on line '.$errline;
-		  		XF_Functions::writeErrLog($message);
+			    $message = $url."\n".'ERROR: '.$errstr. ' in '.$errfile.' on line '.$errline;
 		        if ($env == 'development')
 		        {
-		          exit($message);
+		          	exit($message);
 		        }
 		        else
 		        {
-		          throw new XF_Exception($message);
+		        	XF_Functions::writeErrLog($message);
+		          	throw new XF_Exception($message);
 		        }
 			    break;
 		    /*case E_STRICT:
@@ -161,8 +165,9 @@ class XF_Application
      */
 	public static function appException(Exception $e)
     {
-    	$env = XF_Config::getInstance()->getEnvironmental();
-    	XF_Functions::writeErrLog($e->getTraceAsString());
+    	$req = XF_Controller_Request_Http::getInstance();
+    	$message = $req->getMethod().' "'.$req->getRequestUrl().'" '.$e->getMessage()."\n";
+    	XF_Functions::writeErrLog($message.$e->getTraceAsString());
 		echo $e;
     }
     
@@ -228,6 +233,8 @@ class XF_Application
      */
     private function _runTime()
     {
+    	//require XF_PATH.'/Loader/Autoloader.php';
+    	//return;
     	$file = TEMP_PATH.'/RunTime.php';
     	if (!is_file($file))
     	{
@@ -261,7 +268,6 @@ class XF_Application
 				'Db/Table/Select/Mysql.php',
 				'Db/Config/Interface.php',
 				'Db/Config.php',
-				'Db/Drive/Interface.php',
 	    		'Db/Drive/Abstract.php',
 				'Db/Drive/Mysql.php',
 				'View/Helper.php',

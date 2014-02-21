@@ -30,13 +30,18 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
 	 * @var array
 	 */
 	protected $_rewrites = array();
-	
 
 	/**
 	 * 路由规则调用顺序索引
 	 * @var array
 	 */
 	protected $_rewrite_index = array();
+	
+	/** 
+	 * 禁用默认路由的Action列表
+	 * @var array
+	 */
+	protected $_disabled_default_routes;
 	
 	/**
 	 * 添加一个参数
@@ -120,6 +125,18 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
     	return $this;
     }
     
+    /**
+     * 禁用Action的默认路由【将无法通过默认路由规则访问】
+     * @param string $module 模块名
+     * @param string $controller 控制器名
+     * @param string $action 动作名
+     * @return XF_Controller_Router_Abstract
+     */
+    public function disabledDefaultRouter($module, $controller, $action)
+    {
+    	$this->_disabled_default_routes[strtolower($module.$controller.$action)] = TRUE;
+    	return $this;
+    }
     
     /**
      * 添加路由器重写规则
@@ -128,7 +145,7 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
      * @param int $index 执行优先级，数值越大将最先被执行
      * @return XF_Controller_Router_Abstract
      */
-    public function addRewrite($name, XF_Controller_Router_Rewrite_Interface $rewrite, $index = NULL)
+    public function addRewrite($name, XF_Controller_Router_Rewrite_Abstract $rewrite, $index = NULL)
     {
     	$name = (string) $name;
     	if ($index === NULL)
@@ -147,6 +164,12 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
             XF_Functions::arrayInsert($this->_rewrite_index, $index, $name);
     	}
         $this->_rewrites[$name] = $rewrite;
+        
+        if ($rewrite->isDisableDefaultRoute())
+        {
+        	$m = $rewrite->getMca();
+        	$this->disabledDefaultRouter($m['module'], $m['controller'], $m['action']);
+        }
         return $this;
     }
     
@@ -158,9 +181,9 @@ abstract class XF_Controller_Router_Abstract implements XF_Controller_Router_Int
     public function clearRewrites($name = null)
     {
     	if (null === $name)
-            $this->_rewrites = $this->_rewrite_index = array();
-
-
+    	{
+    		$this->_rewrites = $this->_rewrite_index = array();
+    	}
         elseif (is_string($name) && isset($this->_rewrites[$name]))
         {
         	XF_Functions::arrayDeleteFromValue($this->_rewrite_index, $name);

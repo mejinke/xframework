@@ -130,6 +130,13 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 */
 	protected $_show_query = false;
 	
+	/** 
+	 * 将主键值作为结果数组的key ? 默认为 false
+	 * @var bool
+	 */
+	protected $_reset_result_key = false;
+	
+	
 	/**
 	 * 设置缓存方式
 	 * @access public
@@ -200,13 +207,13 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		$autoPage = isset($options['autoPage']) ? $options['autoPage'] : FALSE;
 		
 		//是否需要将查到的数据包装相对应的对象
-		$packing = isset($options['packing']) ? $options['packing'] : true;
+		$packing = isset($options['packing']) ? $options['packing'] : TRUE;
 		
 		$this->_allotDatabaseServer();
 		
 		//查询的结果
 		$result = false;
-		
+	
 		//如果等于false 则不分页
 		if ($size === false || $offset === false)
 		{
@@ -452,6 +459,17 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	}
 	
 	/**
+	 * 重置查询结果数组的key？【将主键值作为key】
+	 * @param bool $status
+	 * @return XF_Db_Table_Select_Abstract
+	 */
+	public function resetResultKey($status = TRUE)
+	{
+		$this->_reset_result_key = $status;
+		return $this;
+	}
+	
+	/**
 	 * 获取SQL语句
 	 * @return string
 	 */
@@ -631,8 +649,14 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 				if (method_exists($entity, 'init') && $this->_auto_call_init)
 					$entity->init();
 					
-				
-				$entityList[] = $entity;
+				if ($this->_reset_result_key === true)
+				{
+					$entityList[$entity->{$this->_db_table->getPrimaryKey()}] = $entity;
+				}
+				else
+				{
+					$entityList[] = $entity;
+				}
 			}
 			
 			$entityList =  $this->_autoSelectFieldAssociated($entityList);
@@ -723,11 +747,60 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		{
 			$tep = $this->_readAutoSelectFieldAssociated($info);
 			if (XF_Functions::isEmpty($tep))
-					return $info;
+				return $info;
 			foreach ($tep as $key => $val)
 			{
 				$assName = array_keys($val);
 				$tmp = $info->selectAssociated($assName[0]);
+				
+				if($val[$assName[0]]['oneToMany'] == true)
+				{
+					if (is_array($tmp))
+					{
+						foreach ($tmp as $t)
+						{
+							$fields = explode(',', $val[$assName[0]]['field']);
+							if (count($fields) > 1)
+							{
+								foreach ($fields as $f)
+								{
+									if (strpos($f, ':') ===0)
+									{
+										$f = str_replace(':', '', $f);
+										$fvs = explode(',', $info->$f);
+										foreach ($fvs as $_fvs)
+										{
+											if ($_fvs == $t->{$val[$assName[0]]['associateField']})
+											{
+												$info->{$assName[0].'_'.$f.'_all_data_count'} += 1;
+												$count = is_array($info->{$assName[0].'_'.$f}) ? count($info->{$assName[0].'_'.$f}) : 0;
+												if ($count < $val[$assName[0]]['size'])
+													$info->{$assName[0].'_'.$f.'[]'} = $t;
+											}
+										}
+									}
+									else
+									{
+										if ($info->$f == $t->{$val[$assName[0]]['associateField']})
+										{
+											$info->{$assName[0].'_'.$f.'_all_data_count'} += 1;
+											$count = is_array($info->{$assName[0].'_'.$f}) ? count($info->{$assName[0].'_'.$f}) : 0;
+											if ($count < $val[$assName[0]]['size'])
+												$info->{$assName[0].'_'.$f.'[]'} = $t;
+										}
+									}	
+								}
+							}
+							else 
+							{
+								$info->{$assName[0].'_all_data_count'} += 1;
+								$count = is_array($info->{$assName[0]}) ? count($info->{$assName[0]}) : 0;
+								if ($count < $val[$assName[0]]['size'])
+									$info->{$assName[0].'[]'} = $t;
+							}
+						}
+					}
+				}
 				if (strpos($val[$assName[0]]['field'], ',') !== false)
 				{
 					$fields = explode(',', $val[$assName[0]]['field']);
@@ -751,17 +824,19 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 								{
 									if ($info->$f == $t->{$val[$assName[0]]['associateField']})				
 										$info->{$assName[0].'_'.$f} = $t;
-								}
-									
+								}	
 							}
 						}
 					}
 				}
 				else
+				{
 					$info->{$assName[0]} = $tmp;
+				}
+					
 			}
 		}
-		elseif (isset($info[0]) && $info[0] instanceof XF_Db_Table_Abstract)
+		elseif (is_array($info))
 		{
 			$fieldValues = array();
 			$allSelectFieldAssociate = array();
@@ -815,8 +890,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 						
 				}
 			}
-		 
-			
+	
 			$allAssociateInfos = array();
 			foreach ($fieldValues as $fk => $fv)
 			{
@@ -832,14 +906,27 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   			if (isset($objectAssting[$_k]))
 			   			{
 			   				$matchAssting = $objectAssting[$_k];
+			   				
 			   				foreach ($matchAssting as $mk => $mval)
 			   				{
 			   					if (get_class($table) == $mval['assObjectName'])
 			   					{
 			   						if ($mval['autoAssociated'] == true)
-			   							$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
-			   						else
+			   						{
+			   							if (!empty($mval['where']))
+			   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
+			   							else
+			   								$table->setAssociatedAutoOnly($mk, $mval['size']);			
+			   						}
+			   						elseif (!empty($mval['where']))
+			   						{
 			   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order']);
+			   						}
+			   						else
+			   						{
+			   							$table->setAssociatedManualOnly($mk, $mval['size']);
+			   						}
+			   							
 			   					}
 			   				}
 			   			}
@@ -878,19 +965,20 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   		$allAssociateInfos[$fk.'=>'.$k.''] = $rs;
 			   	}
 			}
+
 			
 			//组合资料
 			foreach ($info as $info_k => $info_v)
 			{
-				//获取当前表对象所有的关联设置
-				$associateAllConfig = $info_v->getFieldAssociated();
 				foreach ($allAssociateInfos as $assInfo_k => $assInfo_v)
 				{
 					if (is_array($assInfo_v))
 					{
+						////获取当前表对象所有的关联设置
+						$associateAllConfig = $info_v->getFieldAssociated();
+						
 						foreach ($associateAllConfig as $assConfig_k => $assConfig_v)
 						{
-							
 							if ($assConfig_v['table'].'=>'.$assConfig_v['associateField'] == $assInfo_k)
 							{
 								//字段列表

@@ -150,7 +150,7 @@ class XF_Db_Table_Validate
 
 			//验证 数字
 			case 'number':
-				if(!empty($data[$key]))
+				if(isset($data[$key]))
 				{
 					if($rules_value=='true')
 					{
@@ -160,26 +160,46 @@ class XF_Db_Table_Validate
 				}
 				break;
 
-			//数字小于XX
-			case '<':
-				if(!empty($data[$key]))
+			//数字小于
+			case 'lt':
+				if(isset($data[$key]))
 				{
-					if($data[$key] > $rules_value)
+					if (!is_numeric($data[$key]) || !is_numeric($rules_value))
 						$validateOk = false;
-
-				}
-				break;
-
-			//数字大于XX
-			case '>':
-				if(!empty($data[$key]))
-				{
-					if($data[$key] < $rules_value)
+					elseif($data[$key] >= $rules_value)
 						$validateOk = false;
 				}
 				break;
 
-
+			//数字大于
+			case 'gt':
+				if(isset($data[$key]))
+				{
+					if (!is_numeric($data[$key]) || !is_numeric($rules_value))
+						$validateOk = false;
+					elseif($data[$key] <= $rules_value)
+						$validateOk = false;
+				}
+				break;
+				
+			//等于
+			case 'equal':
+				if(isset($data[$key]))
+				{
+					if($data[$key] !== $rules_value)
+						$validateOk = false;
+				}
+				break;
+				
+			//不等于
+			case 'unequal':
+				if(isset($data[$key]))
+				{
+					if($data[$key] === $rules_value)
+						$validateOk = false;
+				}
+				break;
+				
 			//验证 是否为正确的email
 			case 'email':
 				if(!empty($data[$key]) && $rules_value == 'true')
@@ -201,7 +221,7 @@ class XF_Db_Table_Validate
 			case 'moblie':
 				if(!empty($data[$key]) && $rules_value == 'true')
 				{
-					$validateOk = XF_String_Validate_Moblie::validate($data[$key]);
+					$validateOk = XF_String_Validate_Mobile::validate($data[$key]);
 				}
 				break;
 
@@ -279,7 +299,7 @@ class XF_Db_Table_Validate
 
 			//验证与指定的字段值是否相同
 			case 'confirm':
-				if(!empty($data[$key]))
+				if(isset($data[$key]))
 				{
 					if($data[$key] != $data[$rules_value])
 						$validateOk = false;
@@ -287,7 +307,7 @@ class XF_Db_Table_Validate
 				break;
 				
 			case 'date':
-				if($rules_value == 'true')
+				if (isset($data[$key]) && $rules_value == 'true')
 				{
 					if(!XF_String_Validate_Date::validate($data[$key]))
 						$validateOk = false;
@@ -295,7 +315,7 @@ class XF_Db_Table_Validate
 				break;
 				
 			case 'time':
-				if($rules_value == 'true')
+				if (isset($data[$key]) && $rules_value == 'true')
 				{
 					if(!XF_String_Validate_Time::validate($data[$key]))
 						$validateOk = false;
@@ -303,7 +323,7 @@ class XF_Db_Table_Validate
 				break;
 				
 			case 'unique':
-				if ($rules_value == 'true')
+				if (isset($data[$key]) && $rules_value == 'true')
 				{
 					if ($db_table == NULL)
 						$validateOk = false;

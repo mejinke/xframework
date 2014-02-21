@@ -84,8 +84,20 @@ abstract class XF_Controller_Easy implements XF_Controller_Interface
 	public function getParamNumber($key, $default = 0)
 	{
 		$val = $this->_request->getParam($key, $default);
-		if ($default == $val) return $val;
-		return is_numeric($val) ? floatval($val) : $default;
+		if ($default == $val) 
+		{
+			return $val;
+		}
+		if (is_numeric($val))
+		{
+			$tmp = explode('.', $val);
+			if (strlen($tmp[0]) > 14)
+			{
+				return $val;
+			}
+			return floatval($val);
+		}
+		return $default;
 	}
 	
 	public function getParams()

@@ -64,7 +64,7 @@ class XF_Functions
     {
         foreach($array as $key => $val)
         {
-            if($val === $value)
+            if($val == $value)
                 unset($array[$key]);
         }
         return $array;
@@ -79,18 +79,17 @@ class XF_Functions
      */
     public static function arrayDeleteEmptyValue(Array &$array, $sort = FALSE)
     {
-        if(!empty($array))
-        {
-            $keys = array_keys($array);
-            for($i=0; $i<count($keys); $i++)
-            {
-                $tep = trim($array[$keys[$i]]);
-                if($tep == '')
-                    unset($array[$keys[$i]]);
-            }
-        }
-        $array = $sort ? array_values($array) : $array;
-        return $array;
+    	if (count($array) == 0) return $array;
+    	foreach ($array as $k => $val)
+    	{
+    		if (trim($val) === '')
+    		{
+    			unset($array[$k]);
+    		}
+    	}
+
+    	$array = $sort === TRUE && count($array) > 0 ? array_values($array) : $array;
+    	return $array;
     }
 
 
@@ -131,7 +130,7 @@ class XF_Functions
 	 */
 	public static function authCode($string, $operation = 'ENCODE')
 	{
-		$key = md5("*!mV-XF[x0O-9gIU]=");
+		$key = md5("~!mVx0");
 		$key_length = strlen($key);
 	
 		$string = $operation == 'DECODE' ? base64_decode($string) : substr(md5($string.$key), 0, 8).$string;
@@ -193,25 +192,32 @@ class XF_Functions
 	 * URL 跳转
 	 * @access public
 	 * @param string $url 跳转的URL
-	 * @param int $code 重定向状态码 默认为302
+	 * @param int $code 重定向状态码 301[永久移动]、302[临时移动] 默认为302
 	 * @return void
 	 */
 	public static function go($url = '', $code = 302)
 	{
+		if ($code == 301)
+		{
+			header('HTTP/1.1 301 Permanently Moved');
+		}
+		
 		//检测是否存在对应的扩展
 		if(function_exists('go'))
 		{
 			go($url);
 			return;
 		}
-		
-		if ($code == 301)
-			header('HTTP/1.1 301 Permanently Moved');
-			
+
 		if(substr($url,0,7)=='http://')
-			header("location:".$url);
+		{
+			
+			header("Location:".$url);
+		}
 		else
-			header("location:".$url);
+		{
+			header("Location:".$url);
+		}
 		exit;
 	}
 		
@@ -259,18 +265,7 @@ class XF_Functions
 		}
 		echo'<script>self.location=document.referrer;</script>';
 	}
-	
-	/** 
-	 * 获取当前时间 
-	 * @access public
-	 * @return float 
-	 */ 
-	public static function getCurrentTime()
-    {
-        list ($msec, $sec) = explode(" ", microtime());
-        return (float)$msec + (float)$sec;
-    }
-    
+	    
 	/**
 	 * 获取过去或都未来的年月
 	 * @access public

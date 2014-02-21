@@ -21,7 +21,7 @@ class XF_String_Validate_Time implements XF_Validate_Interface
 			return FALSE;
 		$tmp = explode(' ', $var);
 		if (count($tmp) != 2) return false;
-		if (XF_Validate_Date::validate($tmp[0]) == false) return false;
+		if (XF_String_Validate_Date::validate($tmp[0]) == false) return false;
 		$tmp = explode(':', $tmp[1]);
 		if (count($tmp) !=3 )return false;
 		if ($tmp[0]>23 || $tmp[0]<0 || $tmp[1]>59 || $tmp[1]<0 || $tmp[2]>59 || $tmp[2]<0) return false;

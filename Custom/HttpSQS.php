@@ -40,11 +40,17 @@ class HttpSQS
 
     public function http_get($query)
     {
-        $socket = fsockopen($this->httpsqs_host, $this->httpsqs_port, $errno, $errstr, 5);
-        if (!$socket)
+    	$i = 1; $socket = false;
+        while (!$socket)
         {
-            return false;
+        	$i++;
+        	if ($i == 5)
+        	{
+        		return false;
+        	}
+        	$socket = fsockopen($this->httpsqs_host, $this->httpsqs_port, $errno, $errstr, 5);
         }
+        
         $out = "GET ${query} HTTP/1.1\r\n";
         $out .= "Host: {$this->httpsqs_host}\r\n";
         $out .= "Connection: close\r\n";
@@ -97,11 +103,17 @@ class HttpSQS
 
     public function http_post($query, $body)
     {
-        $socket = fsockopen($this->httpsqs_host, $this->httpsqs_port, $errno, $errstr, 1);
-        if (!$socket)
+    	$i = 1; $socket = false;
+        while (!$socket)
         {
-            return false;
+        	$i++;
+        	if ($i == 5)
+        	{
+        		return false;
+        	}
+        	$socket = fsockopen($this->httpsqs_host, $this->httpsqs_port, $errno, $errstr, 5);
         }
+      
         $out = "POST ${query} HTTP/1.1\r\n";
         $out .= "Host: {$this->httpsqs_host}\r\n";
         $out .= "Content-Length: " . strlen($body) . "\r\n";

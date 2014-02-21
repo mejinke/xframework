@@ -1166,17 +1166,29 @@ class Apache_Solr_Service
 
 		$queryString = $this->_generateQueryString($params);
 
+		$result = false;
+		$stime = microtime(true);
 		if ($method == self::METHOD_GET)
 		{
-			return $this->_sendRawGet($this->_searchUrl . $this->_queryDelimiter . $queryString);
+			$result = $this->_sendRawGet($this->_searchUrl . $this->_queryDelimiter . $queryString);
 		}
 		else if ($method == self::METHOD_POST)
 		{
-			return $this->_sendRawPost($this->_searchUrl, $queryString, FALSE, 'application/x-www-form-urlencoded; charset=UTF-8');
+			$result = $this->_sendRawPost($this->_searchUrl, $queryString, FALSE, 'application/x-www-form-urlencoded; charset=UTF-8');
 		}
-		else
+		$etime = microtime(true);
+		if (XF_Config::getInstance()->getSaveDebug())
 		{
-			throw new Apache_Solr_InvalidArgumentException("Unsupported method '$method', please use the Apache_Solr_Service::METHOD_* constants");
+			$str = urldecode($queryString).' '.sprintf ("%.5f",($etime - $stime)).'s';
+			if ($etime - $stime > 0.5)
+				$str = '<font style="color:red">'.$str.'</font>';
+			XF_DataPool::getInstance()->addList('Solrs', $str);
+			$count = XF_DataPool::getInstance()->get('SolrTimeCount', 0);
+			XF_DataPool::getInstance()->add('SolrTimeCount', sprintf ("%.5f",$count+($etime - $stime>0 ? $etime - $stime:0)));
 		}
+		
+		return $result;
+		throw new Apache_Solr_InvalidArgumentException("Unsupported method '$method', please use the Apache_Solr_Service::METHOD_* constants");
+		
 	}
 }

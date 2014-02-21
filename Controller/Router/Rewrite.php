@@ -20,9 +20,10 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 	 * @param array $mArray　对应的module controller action 数组
 	 * @param mixed $paramsArray　对应的参数数组 默认为null  例:array('0:1' => 'page', '1:1'=>'key')
 	 * @param array $redirectArray 重定向匹配到的URL
+	 * @param bool $disableTheDefaultRoute 禁用当前重写的Action的默认路由(该Action将无法能通过默认的路由方式访问)，默认为TRUE
      * @throws XF_Controller_Router_Rewrite_Exception
 	 */
-	public function __construct($regex, Array $mArray, Array $paramsArray = NULL, $redirectArray = null)
+	public function __construct($regex, Array $mArray, Array $paramsArray = NULL, $redirectArray = NULL, $disableTheDefaultRoute = TRUE)
 	{
 		if (!isset($mArray['module']) || !isset($mArray['controller']) || !isset($mArray['action']))
 			throw new XF_Controller_Router_Rewrite_Exception('正则路由缺少对应的Module,Controller,Action数组！');
@@ -30,6 +31,7 @@ class XF_Controller_Router_Rewrite extends XF_Controller_Router_Rewrite_Abstract
 		$this->_ma_array = $mArray;
 		$this->_params_array = $paramsArray;
 		$this->_redirect_array = $redirectArray;
+		$this->_disable_default_route = $disableTheDefaultRoute;
 	}
 		
 	/**

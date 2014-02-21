@@ -205,6 +205,19 @@ class XF_Controller_Plugin_Manage
     }
     
 	/**
+     *  模板渲染完成并完成输出之后
+     * @access public
+     * @return void
+     */
+    public function postOutput()
+    {
+    	foreach ($this->_plugins as $key => $plugin)
+		{
+			$plugin->postOutput();
+		}
+    }
+    
+	/**
      * 404时调用
      * @access public
      * @param  XF_Controller_Request_Abstract $request

@@ -19,39 +19,47 @@ class XF_String
 	 * 截取指定长度的字符串内容 [支持中文]
 	 * @access public
 	 * @param string $content 字符串内容
-	 * @param int $length 截取长度
+	 * @param int $count 要截取的字符个数【以中文个数为准】
 	 * @param string $more 超出长度时的表示字符串
 	 * @return string
 	 */
-	public static function substr($content, $length, $more = '')
+	public static function substr($content, $count, $more = '')
 	{	
-	
 		$content = self::text($content);
-		if ($content == '') return '';
-		$strlen = strlen($content);
-		for($i = 0; $i < $length; $i++)
-		{
-			$temp_str = substr($content,0,1);
-			if(ord($temp_str) > 127)
-			{
-				$i++;
-				if($i < $length)
-				{
-				$new_str[] = substr($content, 0, 3);
-				$content = substr($content, 3);
-				}
-			}
-			else
-			{
-				$new_str[] = substr($content, 0, 1);
-				$content = substr($content, 1);
-			}
-		}
-		$new_str = join($new_str);
-	
-		if ($strlen > $length)
-			$new_str .= $more;
-		return $new_str;
+		$code2Len  = array('gbk' => 2, 'utf-8' => 3);
+	    $lenString = mb_strlen($content);
+	    $LenSplit  = $count * $code2Len['utf-8'];
+	    $spaceLen  = $count * 2;
+	    if($lenString <= $LenSplit)
+	    {
+	        return $content;
+	    }
+	    else
+	    {     
+	    	$str = ''; 
+	        for($i=-1; $i<=$spaceLen; $i++)
+	        {
+	            $len = $count + $i;
+	            $str = mb_substr($content, 0, $len, 'utf-8');
+	            @preg_match_all("/([\x{4e00}-\x{9fa5}]){1}/u", $str, $arrCh);
+	            $currentCNs = count($arrCh[0]);
+	                       
+	            $chrSpace = $len - $currentCNs;
+	            $currentSpaces = $currentCNs * 2 + $chrSpace; 
+	            $diffSpace = $spaceLen - $currentSpaces;
+	            
+	            if($more != '')
+	            {
+	                $str .= $more;
+	                if($diffSpace <= 3){break 1;}
+	            }
+	            else
+	            {
+	                if($diffSpace <= 1){break 1;}
+	            }
+	        }
+	        return $str;
+	    }
 	}
 
 	/**

@@ -91,11 +91,24 @@ class XF_Db_Table_Select_Paginator
 	 */
 	protected $_custom_params = array();
 	
+	/**
+	 * 最大分页数
+	 * @var int
+	 */
+	protected $_max_page_size;
+	
 	/** 
-	 * 自定义的URL
+	 * 自定义分页的URL
 	 * @var string
 	 */
 	private $_custom_url = '';
+	
+	/**
+	 * 自定义第一页的URL
+	 * @var string
+	 */
+	private $_first_page_url = '';
+	
 
 	/**
 	 * 当前完整请求的URL，不带分页参数
@@ -148,10 +161,10 @@ class XF_Db_Table_Select_Paginator
 		$this->_data_count = $dataCount;
 		
 		//获取总页数
-		$this->_page_count = ceil($this->_data_count/$this->_page_size);
+		$this->_page_count = ceil($this->_data_count / $this->_page_size);
+		
 		return $this;
 	}
-	
 	
 	/**
 	 * 设置分页的URL
@@ -164,6 +177,27 @@ class XF_Db_Table_Select_Paginator
 		return $this;
 	}
 	
+	/**
+	 * 设置第一页的URL
+	 * @param string $url
+	 * @return XF_Db_Table_Select_Paginator
+	 */
+	public function setFirstUrl($url)
+	{
+		$this->_first_page_url = $url;
+		return $this;
+	}
+	
+	/**
+	 * 设置允许的最大页数
+	 * @param int $size
+	 * @return XF_Db_Table_Select_Paginator
+	 */
+	public function setMaxPageSize($size)
+	{
+		$this->_max_page_size = $size;
+		return $this;
+	}
 	
 	/**
 	 * 设置为使用传统的连接方式 
@@ -177,7 +211,6 @@ class XF_Db_Table_Select_Paginator
 		return $this;
 	}
 	
-	
 	/**
 	 * 执行分页
 	 */
@@ -187,6 +220,13 @@ class XF_Db_Table_Select_Paginator
 		$this->_params = $this->_request->getCustomParams(false);
 		$page = $this->_request->getParam($this->_paginator_param, FALSE) ? intval($this->_request->getParam($this->_paginator_param)) : 1;
 		$this->_page = $page;
+		
+		//重置最大页数
+		if (is_numeric($this->_max_page_size) && $this->_max_page_size > 0 && $this->_page_count > $this->_max_page_size)
+		{
+			$this->_page_count = $this->_max_page_size;
+		}
+		
 		$this->_getDiyResultByArray();
 		$this->nowbar();
 		
@@ -270,9 +310,13 @@ class XF_Db_Table_Select_Paginator
 	private function _getFirst()
 	{
 		if ($this->_page == 1)
+		{
 			return $this->_span($this->_first_page);
+		}
 		else
-			return $this->_getLink(1, $this->_first_page);
+		{
+			return $this->_getLink($this->_first_page_url == '' ? 1 : $this->_first_page_url, $this->_first_page);
+		}
 	}
 
 	/**
@@ -334,13 +378,15 @@ class XF_Db_Table_Select_Paginator
 			if($i <= $this->_page_count)
 			{
 				if($i != $this->_page)
-					$return.= $this->_getLink($i, $i);
+				{
+					$return .= $this->_getLink($i, $i);
+				}
 				else
-					$return.=' <span>'.$i.'</span> ';
+					$return .=' <span>'.$i.'</span> ';
 			}
 			else
 				break;
-		   $return.="\n";
+		   $return .="\n";
 		  }
 
 		 unset($begin);
@@ -417,15 +463,15 @@ class XF_Db_Table_Select_Paginator
 		return $return;
 	}
 
-
-	 /**
-	   * 获取链接地址
-	   */
-	private function _getLink($url,$text)
+	/**
+	 * 获取链接地址
+	 * @param int $page 页码
+	 * @param string $text 显示名称
+	 */
+	private function _getLink($page, $text)
 	{
-		return ' <a href="'.$this->_getUrl($url).'">'.$text.'</a> ';
+		return ' <a href="'.$this->_getUrl($page).'">'.$text.'</a> ';
 	}
-
 
  	private function _span($text)
 	{
@@ -439,6 +485,12 @@ class XF_Db_Table_Select_Paginator
 			$this->_params[$this->_paginator_param] = $page;
 		else 
 			unset($this->_params[$this->_paginator_param]);
+			
+	 	if ($page == 1 && $this->_first_page_url != '')
+		{
+			return $this->_first_page_url;
+		}
+		
 		$url = $this->_custom_url;
 		if ($this->_custom_url == null)
 		{

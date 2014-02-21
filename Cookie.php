@@ -62,22 +62,23 @@ class XF_Cookie implements XF_Cookie_Interface
 	 * @param string $domain 域，默认为配置文件中的 “domain”
 	 * @return XF_Cookie
 	 */
-	public function write($content, $expire = 604800, $path = '/', $domain = NULL)
+	public function write($content, $expire = 604800, $path = '/', $domain = NULL )
 	{
 		if ($this->_lock == FALSE)
 		{
 			$this->_lock = TRUE;
+			if ($domain == NULL)
+			{
+				$domain = XF_Config::getInstance()->getDomain();
+			}
+			
 			if ($content == null)
-				setcookie($this->_namespace,'1',time()-1, $path);
+				setcookie($this->_namespace, '1', time()-1, $path, $domain);
 			else
 			{
-				if ($domain == NULL)
-				{
-					$domain = XF_Config::getInstance()->getDomain();
-				}
-				setcookie($this->_namespace, XF_Functions::authCode(serialize($content)), time()+$expire, $path, $domain);
-			}
 				
+				setcookie($this->_namespace, XF_Functions::authCode($content), time()+$expire, $path, $domain);
+			}	
 			$this->_lock = FALSE;
 		}
 		return $this;
@@ -90,7 +91,7 @@ class XF_Cookie implements XF_Cookie_Interface
 	public function read()
 	{
 		if (isset($_COOKIE[$this->_namespace]))
-			return unserialize(XF_Functions::authCode($_COOKIE[$this->_namespace], 'DECODE'));
+			return XF_Functions::authCode($_COOKIE[$this->_namespace], 'DECODE');
 		return null;
 	}
 	

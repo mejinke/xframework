@@ -62,6 +62,12 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 	 */
 	private $_old_request_params_string = '';
 	
+	/**
+	 * 当前请求的是否为默认路由
+	 * @var bool
+	 */
+	private $_request_default_route = TRUE;
+	
 	
 	/**
 	 * 获得最终将要处理的URI地址
@@ -95,7 +101,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 	 */
 	public function bindDomain($moduleName, $domain)
 	{
-		$this->_bin_domain[$domain] = strtolower($moduleName);
+		$this->_bin_domain[$domain] = $moduleName;
 		return $this;
 	}
 	
@@ -144,8 +150,8 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 	 */
 	public function closeModule($moduleName)
 	{
-		$m = strtolower((string)$moduleName);
-		$this->_close_modules[$m] = $m;
+		$m = (string)$moduleName;
+		$this->_close_modules[strtolower($m)] = $m;
 		return $this;
 	}
 	
@@ -198,6 +204,14 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 			throw new XF_Controller_Router_Exception('The module is close', 404);
 		}
 			
+		//当前Action是否禁用了默认路由
+		if ($this->_request_default_route === TRUE)
+		{
+			if (isset($this->_disabled_default_routes[strtolower($this->_request->getModule().$this->_request->getController().$this->_request->getAction())]))
+			{
+				throw new XF_Controller_Router_Exception('The action default router disabled', 404);
+			}
+		}
 		$this->_readOldRequestParams();
 	}
 	
@@ -249,7 +263,8 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
             }
             XF_DataPool::getInstance()->addHash('DEBUG', 'Rewites', $tmp);
         }
-
+		
+        $this->_request_default_route = !$status;
 		return $status;
 	}
 	
@@ -273,7 +288,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 			$domainModuleName = null;
 			if (key_exists($this->_request_http_host, $this->_bin_domain))
 				$domainModuleName =  $this->_bin_domain[$this->_request_http_host];
-           
+     
            	if ($domainModuleName != null) 
            	{
                 $isDefaultModule = TRUE;
@@ -282,13 +297,13 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
            		if ($count >= 1 && is_array($this->_bin_domain_allow_modules) && isset($this->_bin_domain_allow_modules[$domainModuleName]) && in_array($tmp[0], $this->_bin_domain_allow_modules[$domainModuleName]))
            		{
            			//是否为自身当前绑定应用的控制器
-           			if (!file_exists(APPLICATION_PATH.'/modules/'.strtolower($domainModuleName).'/'.ucfirst($tmp[0]).'Controller.php'))
+           			if (!file_exists(APPLICATION_PATH.'/modules/'.$domainModuleName.'/'.ucfirst($tmp[0]).'Controller.php'))
            			{
-           				if (is_dir(APPLICATION_PATH.'/modules/'.strtolower($tmp[0])))
+           				if (is_dir(APPLICATION_PATH.'/modules/'.$tmp[0]))
            				{
            					$isDefaultModule = FALSE;
            					$this->_request->setModule($tmp[0]);
-           				}	
+           				}
            			}
            		}
            	}
@@ -306,7 +321,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
            			$this->_request->setModule('default')->setController($tmp[0]);
            		}
            		//是否是一个module，并且不是一个被域名绑定的模块
-           		elseif (is_dir(APPLICATION_PATH.'/modules/'.strtolower($tmp[0]).'/controllers/') && !in_array(strtolower($tmp[0]), $binds))
+           		elseif (is_dir(APPLICATION_PATH.'/modules/'.$tmp[0].'/controllers/') && !in_array($tmp[0], $binds))
            		{
            			$this->_request->setModule($tmp[0]);
            		}
@@ -314,11 +329,11 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
            			$this->_request->setModule('unknown');
            			
            		return;
-           	}	
+           	}
            	else
             {	
                 //是否存在此Module
-                if (isset($tmp[1]) && is_file(APPLICATION_PATH.'/modules/'.strtolower($tmp[0]).'/controllers/'.ucfirst($tmp[1]).'Controller.php') && !in_array(strtolower($tmp[0]), $binds))
+                if (isset($tmp[1]) && is_file(APPLICATION_PATH.'/modules/'.$tmp[0].'/controllers/'.ucfirst($tmp[1]).'Controller.php') && !in_array($tmp[0], $binds))
                 {
                 	 $this->_request->setModule($tmp[0]);
                 }

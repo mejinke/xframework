@@ -44,15 +44,23 @@ abstract class XF_Controller_Router_Rewrite_Abstract implements XF_Controller_Ro
 	 */
 	protected $_redirect_array;
 	
+	/** 
+	 * 当前设置的Action是否禁用默认路由
+	 * @var bool
+	 */
+	protected $_disable_default_route;
+			
 	/**
 	 * 初始化
-	 * @param string $regex　正则表达式
+	 * @param string|array $regex　正则表达式,支持数组方式
 	 * @param array $mArray　对应的module controller action 数组
-	 * @param array $paramsArray　对应的参数数组
+	 * @param mixed $paramsArray　对应的参数数组 默认为null  例:array('0:1' => 'page', '1:1'=>'key')
 	 * @param array $redirectArray 重定向匹配到的URL
+	 * @param bool $disableTheDefaultRoute 禁用当前重写的Action的默认路由(该Action将无法能通过默认的路由方式访问)，默认为TRUE
+     * @throws XF_Controller_Router_Rewrite_Exception
 	 */
-	abstract public function __construct($regex, Array $mArray, Array $paramsArray = NULL, $redirectArray = null);
-		
+	abstract public function __construct($regex, Array $mArray, Array $paramsArray = NULL, $redirectArray = NULL, $disableTheDefaultRoute = TRUE);
+	
 	/**
 	 * 是否匹配规则
 	 * @return bool
@@ -60,6 +68,23 @@ abstract class XF_Controller_Router_Rewrite_Abstract implements XF_Controller_Ro
 	public function isMatch()
 	{
 		return $this->_match_status;
+	}
+	
+	/**
+	 * 是否禁用该Action的默认路由
+	 * @return bool
+	 */
+	public function isDisableDefaultRoute()
+	{
+		return $this->_disable_default_route === TRUE ? TRUE : FALSE;
+	}
+	
+	/** 
+	 * 获取重写的模块、控制器、动作名
+	 */
+	public function getMca()
+	{
+		return $this->_ma_array;
 	}
 	
 	/**

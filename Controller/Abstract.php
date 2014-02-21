@@ -130,8 +130,16 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		//当前Action是否存在文件缓存
 		if ($content = $this->_checkCacheContent())
 		{
-			echo $content;
-			return true;
+			//启用GZIP
+			if (function_exists('gzencode') && ob_get_contents() == '')
+			{
+				$content = gzencode($content, 9);
+				header('Content-Encoding:gzip');
+		    	header('Vary:Accept-Encoding');
+		    	header('Content-Length:'.strlen($content));
+			}
+		    echo $content;
+			return;
 		}
 		$this->_checkControllerInstance();
 		$actionName = $this->_request->getAction();			
@@ -153,10 +161,9 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		if ($this->hasAction($method))
 		{
 			$plugins->preAction($this->_request);
-			call_user_func(array($this->_controller,$method));
+			call_user_func(array($this->_controller, $method));
 			$plugins->postAction($this->_request);
 			$this->_render();
-			$plugins->postOutput();
 			return;
 		}
 	
@@ -280,7 +287,16 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		{
 			return $val;
 		}
-		return is_numeric($val) ? floatval($val) : $default;
+		if (is_numeric($val))
+		{
+			$tmp = explode('.', $val);
+			if (strlen($tmp[0]) > 14)
+			{
+				return $val;
+			}
+			return floatval($val);
+		}
+		return $default;
 	}
 	
 	/**
@@ -332,7 +348,19 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		{
 			return $html;
 		}
+		//启用GZIP
 		
+		if (function_exists('gzencode') && ob_get_contents() == '')
+		{
+			ob_start();
+			XF_Controller_Plugin_Manage::getInstance()->postOutput();
+			$str = ob_get_clean();
+			$html .= $str;
+			$html = gzencode($html, 9);
+			header('Content-Encoding:gzip');
+		    header('Vary:Accept-Encoding');
+		    header('Content-Length:'.strlen($html));
+		}
 		echo $html;	
 	}
 	

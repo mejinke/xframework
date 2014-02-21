@@ -103,6 +103,14 @@ abstract class XF_Controller_Plugin_Abstract
     public function postRender(&$html)
     {}
     
+    /**
+     *  模板渲染完成并完成输出之后
+     * @access public
+     * @return void
+     */
+    public function postOutput()
+    {}
+    
 	/**
      * 404时调用
      * @access public

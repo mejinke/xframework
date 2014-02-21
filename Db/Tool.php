@@ -136,7 +136,15 @@ class XF_Db_Tool
 		if(is_null($value)) return 'NULL';
 		if (is_string($value)) return $value;
 		if(is_bool($value)) return $value ? 1 : 0;
-		if(is_numeric($value)) return floatval($value);
+		if (is_numeric($value))
+		{
+			$tmp = explode('.', $value);
+			if (strlen($tmp[0]) > 14)
+			{
+				return $value;
+			}
+			return floatval($value);
+		}
 		if(@get_magic_quotes_gpc()) $value = stripslashes($value);
 		return @mysql_escape_string($value);
 	}

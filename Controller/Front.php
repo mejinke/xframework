@@ -249,9 +249,9 @@ class XF_Controller_Front
 		$this->getModuleDir();
 		$controllerName = NULL;
 		
-		if (ucfirst($this->_request->getModule()) !='Default')
+		if (strtolower($this->_request->getModule()) !='default')
 		{
-			$controllerName = $this->_request->getModule().'_';
+			$controllerName = ucfirst($this->_request->getModule()).'_';
 		}
 
 		$this->_controller_dir = $this->_module_dir.'/controllers';
@@ -294,7 +294,6 @@ class XF_Controller_Front
 				catch (XF_Exception $e){
 					echo $e;
 				}
-				
 			}
 		}
 		else 

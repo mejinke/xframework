@@ -48,7 +48,9 @@ class XF_Exception extends Exception
 	        $_querys = XF_DataPool::getInstance()->get('Querys', array());
 	        echo '<br/>Querys('.count($_querys).') Time:'.XF_DataPool::getInstance()->get('QueryTimeCount',0).'s<br/>' ;
 	        print_r($_querys);
-	        echo 'RunTime:'.sprintf('%.5f', microtime(true)-APP_START_TIME).'s';
+	        echo '<br/>ReadCache('.XF_DataPool::getInstance()->get('CacheTimeCount', 0).'s)<br/>';
+			print_r(XF_DataPool::getInstance()->get('CacheTimeList', array()));
+	        echo '<br/>RunTime:'.sprintf('%.5f', microtime(true)-APP_START_TIME).'s';
 	        echo '</pre>';
 	        echo '</body></html>';
     	}

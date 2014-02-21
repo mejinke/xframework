@@ -36,12 +36,19 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 		if ($this->_db_config instanceof XF_Db_Config_Interface && $this->_db_connection == null)
 		{
 			if (!function_exists('mysql_connect'))
+			{
 				throw new XF_Db_Drive_Exception('Mysql的PECL扩展尚未安装或启用');
+			}
+				
 			$this->_db_connection = @mysql_connect( $this->_db_config->getHost(), $this->_db_config->getAccount(), $this->_db_config->getPassword() ); 
 			if (!$this->_db_connection)
+			{
 				throw new XF_Db_Drive_Exception('无法连接Mysql服务器('.$this->_db_config->getHost().')  Message: '.mysql_error());
+			}
 			else
+			{
 				mysql_query("set names '".$this->_db_config->getChar()."'", $this->_db_connection);
+			}	
 		}
 	}
 	
@@ -75,17 +82,26 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			if(is_scalar($val))
 			{
 				if ($val === '$NULL')
+				{
 					$values[] = "NULL";
+				}
 				else
+				{
 					$values[] = "'".XF_Db_Tool::escape($val)."'";
+				}
 				$fields[] = '`'.$key.'`';
 			}
 		}
+		
 		$query = 'INSERT INTO `'.$this->_db_name.'`.`'.$table.'` ('.implode(',', $fields).') VALUES ('.implode(',', $values).')';
 		if ($this->execute($query))
+		{
 			return $this->getId();
+		}
 		else
+		{
 			return false;
+		}
 	}
 	
 	/**
@@ -104,18 +120,26 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			if(is_scalar($val))
 			{
 				if ($val === '$NULL')
+				{
 					$set[] = '`'.$key."`= NULL";
+				}
 				elseif (strpos($val, '$PK') === 0)
 				{
 					$val = substr($val, 3);
 					$set[] = '`'.$key."`=$val";
 				}
 				else
+				{
 					$set[] = '`'.$key."`='".XF_Db_Tool::escape($val)."'";
+				}	
 			}
 		}
+		
 		if(empty($set))
+		{
 			return false;
+		}
+		
 		$query = 'UPDATE `'.$this->_db_name.'`.`'.$table.'` SET '.implode(',',$set).' '.$where;
 		return $this->execute($query);
 	}
@@ -190,30 +214,44 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 	{	
 		
 		if ($this->_show_query === TRUE)
+		{
 			echo $query.'<br/>';
+		}
 
-		$start = XF_Functions::getCurrentTime();
+		$stime = microtime(true);
 		$this->_connection();
 		$result = mysql_query($query, $this->_db_connection);
-		$end = XF_Functions::getCurrentTime();
+		$etime = microtime(true);
+		$use = sprintf('%.5f', $etime - $stime);
 		
 		//是否记录debug信息
 		if (XF_Config::getInstance()->getSaveDebug())
 		{
-			$str = $query.' '.sprintf ("%.5f",($end-$start)).'s';
-			if ($end-$start > 0.3)
+			$str = $query.' '.$use.'s';
+			if ($use > 0.3)
+			{
 				$str = '<font style="color:red">'.$str.'</font>';
+			}
 			XF_DataPool::getInstance()->addList('Querys', $str);
 			$count = XF_DataPool::getInstance()->get('QueryTimeCount', 0);
-			XF_DataPool::getInstance()->add('QueryTimeCount', sprintf ("%.5f",$count+($end-$start>0 ? $end-$start:0)));
+			XF_DataPool::getInstance()->add('QueryTimeCount', sprintf("%.5f", $count + $use));
 		}
 		
 		if (mysql_error($this->_db_connection) !='')
-			throw new XF_Db_Table_Select_Exception(mysql_error($this->_db_connection), 3306);
+		{
+			throw new XF_Db_Table_Select_Exception(mysql_error($this->_db_connection));
+		}
 			
-		if ($result == false) return false;
+		if ($result == false)
+		{
+			return false;
+		}
+		
 		if ($is_select == true && strpos(strtolower($query), 'select') === 0)
+		{
 			return $this->_getResultArray($result);
+		}
+			
 		return $result;
 	}
 	
@@ -260,12 +298,12 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			$ofsset == null ? $ofsset = 0 : $ofsset;
 		}
 		
-		$sql = 'SELECT '.$field.' FROM  `'.$this->_db_name.'`.`'.$table.'` '
-				.$where
-				.$order;
+		$sql = 'SELECT '.$field.' FROM `'.$this->_db_name.'`.`'.$table.'`'.$where.$order;
 		if ($size !== false && $ofsset !== false)
+		{
 			$sql.= ' LIMIT '.$ofsset.','.$size;
-		
+		}
+			
 		return $sql;
 	}
 	
