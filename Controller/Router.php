@@ -121,7 +121,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 	 * 添加被绑定域名的模块允许访问的其它应用
 	 * @param string $moduleName 被绑定域名的模块名
 	 * @param string $allowModuleName 允许访问的模块名
-	 * @return void
+	 * @return XF_Controller_Router
 	 */
 	public function binDomainAllowModule($moduleName, $allowModuleName)
 	{
@@ -129,6 +129,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 		if (!is_array($this->_bin_domain_allow_modules[$moduleName]))
 			$this->_bin_domain_allow_modules[$moduleName] = array();
 		$this->_bin_domain_allow_modules[$moduleName][] = $allowModuleName;
+		return $this;
 	}
 	
 	/**
@@ -231,7 +232,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
             if(XF_Config::getInstance()->getSaveDebug())
 			    XF_DataPool::getInstance()->addHash('DEBUG', 'NowMatchRewriteName', $name);
 
-			if (TRUE === $this->_rewrites[$name]->match($this->_request->getServer('REQUEST_URI')))
+			if (TRUE === $this->_rewrites[$name]->match($this->_final_uri))
 			{ 
 				$status = TRUE;
 				break;

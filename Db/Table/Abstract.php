@@ -649,14 +649,73 @@ abstract class XF_Db_Table_Abstract
 	
 	/**
 	 * 关联完所有资料后执行
+	 * @access public
 	 */
 	public function initAssociatedAfter()
 	{}
 	
 	/**
 	 * 第一次包装成对象后执行(关联资料前)
+	 * @access public
 	 */
 	public function init()
+	{}
+	
+	/**
+	 * 接口：更新前执行
+	 * @access public
+	 * @param mixed $where 更新的条件
+	 * @param array $data 更新的内容
+	 * @return void
+	 */
+	public function __updateBefore($where, Array &$data)
+	{}
+	
+	/**
+	 * 接口：更新成功后执行
+	 * @access public
+	 * @param mixed $where 更新的条件
+	 * @param array $data 更新的内容
+	 * @return void
+	 */
+	public function __update($where, Array $data)
+	{}
+	
+	/**
+	 * 接口：插入前执行
+	 * @access public
+	 * @param array $data 插入的内容
+	 * @return void
+	 */
+	public function __insertBefore(Array &$data)
+	{}
+	
+	/**
+	 * 接口：插入成功后执行
+	 * @access public
+	 * @param int $pk_id 插入后的主键ID
+	 * @param array $data 插入的内容
+	 * @return void
+	 */
+	public function __insert($pk_id, Array $data)
+	{}
+	
+	/**
+	 * 接口：删除前执行
+	 * @access public
+	 * @param string $where 删除的条件
+	 * @return void
+	 */
+	public function __removeBefore($where)
+	{}
+	
+	/**
+	 * 接口：删除成功后执行
+	 * @access public
+	 * @param string $where 删除的条件
+	 * @return void
+	 */
+	public function __remove($where)
 	{}
 	
 	/**
@@ -780,7 +839,7 @@ abstract class XF_Db_Table_Abstract
 		//如果是一对多的查询
 		if ($this->_field_associateds[$name]['oneToMany'] === true)
 		{
-			return $select->setLimit(false)->fetchAll();
+			return $select->setLimit($size)->fetchAll();
 		}
 		elseif (count($fieldNames) > 1)
 		{

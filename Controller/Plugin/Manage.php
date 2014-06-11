@@ -223,7 +223,7 @@ class XF_Controller_Plugin_Manage
      * @param  XF_Controller_Request_Abstract $request
      * @return void
      */
-    public function exception404(XF_Controller_Request_Abstract $request, XF_Exception $e = null)
+    public function exception404(XF_Controller_Request_Abstract $request, Exception $e = null)
     {	
     	$emptyPlugin = true;
     	
@@ -259,7 +259,7 @@ class XF_Controller_Plugin_Manage
      * @return void
      * @throws XF_Exception
      */
-    public function exception(XF_Controller_Request_Abstract $request, XF_Exception $e)
+    public function exception(XF_Controller_Request_Abstract $request, Exception $e)
     {
     	if ($e->getCode() == '404')
     	{

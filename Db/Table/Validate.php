@@ -218,7 +218,7 @@ class XF_Db_Table_Validate
 				break;
 
 			//验证 是否为正确的手机号码
-			case 'moblie':
+			case 'mobile':
 				if(!empty($data[$key]) && $rules_value == 'true')
 				{
 					$validateOk = XF_String_Validate_Mobile::validate($data[$key]);

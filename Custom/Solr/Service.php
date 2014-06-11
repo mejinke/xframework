@@ -476,9 +476,12 @@ class Apache_Solr_Service
 		// lazy load a default if one has not be set
 		if ($this->_httpTransport === false)
 		{
-			require_once(dirname(__FILE__) . '/HttpTransport/FileGetContents.php');
+			//require_once(dirname(__FILE__) . '/HttpTransport/FileGetContents.php');
 
-			$this->_httpTransport = new Apache_Solr_HttpTransport_FileGetContents();
+			//$this->_httpTransport = new Apache_Solr_HttpTransport_FileGetContents();
+			require_once(dirname(__FILE__) . '/HttpTransport/Curl.php');
+
+			$this->_httpTransport = new Apache_Solr_HttpTransport_Curl();
 		}
 
 		return $this->_httpTransport;
@@ -1179,7 +1182,7 @@ class Apache_Solr_Service
 		$etime = microtime(true);
 		if (XF_Config::getInstance()->getSaveDebug())
 		{
-			$str = urldecode($queryString).' '.sprintf ("%.5f",($etime - $stime)).'s';
+			$str = $this->_path.' : '.urldecode($queryString).' '.sprintf ("%.5f",($etime - $stime)).'s';
 			if ($etime - $stime > 0.5)
 				$str = '<font style="color:red">'.$str.'</font>';
 			XF_DataPool::getInstance()->addList('Solrs', $str);

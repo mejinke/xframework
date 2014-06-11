@@ -53,6 +53,13 @@ class XF_View
 	 */
 	private $_cache_time = 0;
 	
+	/**
+	 * 页面资源(js、css)起始路径
+	 * @var string
+	 */
+	private $_resource_path;
+	
+	
 	private function __construct(){}
 	private function __clone(){}
 	
@@ -134,6 +141,26 @@ class XF_View
 			$this->_cache_time = intval($minutes);
 		}
 		return $this;
+	}
+	
+	/**
+	 * 设置页面资源起始路径
+	 * @param string $path
+	 * @return XF_View
+	 */
+	public function setResourcePath($path)
+	{
+		$this->_resource_path = $path;
+		return $this;
+	}
+	
+	/**
+	 * 获取页面资源起始路径
+	 * @return string
+	 */
+	public function getResourcePath()
+	{
+		return empty($this->_resource_path) ? '' : $this->_resource_path;
 	}
 		
 	/**

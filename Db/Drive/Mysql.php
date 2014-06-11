@@ -40,7 +40,18 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 				throw new XF_Db_Drive_Exception('Mysql的PECL扩展尚未安装或启用');
 			}
 				
+			$stime = microtime(true);
 			$this->_db_connection = @mysql_connect( $this->_db_config->getHost(), $this->_db_config->getAccount(), $this->_db_config->getPassword() ); 
+			$etime = microtime(true);
+			if (XF_Config::getInstance()->getSaveDebug())
+			{
+				$str = 'Connection mysql server '.$this->_db_config->getHost().' '.sprintf ("%.5f",($etime - $stime)).'s';
+				if ($etime - $stime > 0.5)
+					$str = '<font style="color:red">'.$str.'</font>';
+				XF_DataPool::getInstance()->addList('ConnectionMysql', $str);
+				$count = XF_DataPool::getInstance()->get('ConnectionMysqlTimeCount', 0);
+				XF_DataPool::getInstance()->add('ConnectionMysqlTimeCount', sprintf ("%.5f",$count+($etime - $stime>0 ? $etime - $stime:0)));
+			}
 			if (!$this->_db_connection)
 			{
 				throw new XF_Db_Drive_Exception('无法连接Mysql服务器('.$this->_db_config->getHost().')  Message: '.mysql_error());
@@ -247,7 +258,7 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			return false;
 		}
 		
-		if ($is_select == true && strpos(strtolower($query), 'select') === 0)
+		if ($is_select == true && strpos(strtolower(trim($query)), 'select') === 0)
 		{
 			return $this->_getResultArray($result);
 		}

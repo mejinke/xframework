@@ -76,6 +76,7 @@ class XF_Application_Bootstrap
 	 */
 	public function run()
 	{
+		$st = microtime(true);
 		$this->checkDomain();
 		$this->runStartup();
 		if (!empty($_GET['xsessid']))
@@ -87,6 +88,7 @@ class XF_Application_Bootstrap
 		session_start();
 		header("Content-type:text/html;charset=utf-8");
 		$this->_loadInit();
+		XF_DataPool::getInstance()->add('RunBootstrap', sprintf("%.6f", microtime(true) - $st));
 	    XF_Controller_Front::getInstance()->init()->dispatch();
 	}
 }

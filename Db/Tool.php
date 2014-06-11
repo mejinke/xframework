@@ -24,7 +24,7 @@ class XF_Db_Tool
 	{
 
 		if (!is_array($var))
-			return $var;
+			return "($var)";
 		else
 		{	$string = '';
 			foreach ($var as $key=>$val)
@@ -134,7 +134,11 @@ class XF_Db_Tool
 	{
 		if (is_object($value)) return '';
 		if(is_null($value)) return 'NULL';
-		if (is_string($value)) return $value;
+		if (is_string($value))
+		{
+			if(@get_magic_quotes_gpc()) $value = stripslashes($value);
+			return @mysql_escape_string($value);
+		}
 		if(is_bool($value)) return $value ? 1 : 0;
 		if (is_numeric($value))
 		{

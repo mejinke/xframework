@@ -213,6 +213,31 @@ class XF_Controller_Front
 	 */
 	public function dispatch(XF_Controller_Request_Abstract $request = null, $runRouter = true)
 	{
+		try 
+		{
+			$this->_dispatch($request, $runRouter);
+		}
+		catch (Exception $e)
+		{
+			try
+			{
+				$this->_plugin_manage->exception($this->_request,new XF_Exception($e->getMessage(), $e->getCode()));
+			}
+			catch (Exception $e)
+			{
+				echo $e;
+			}
+		}
+	}
+	
+	/**
+	 * 转发控制器
+	 * @param XF_Controller_Request_Abstract $request
+	 * @param bool $runRouter 重新运行路由解析 默认为true
+	 * @throws XF_Controller_Exception
+	 */
+	private function _dispatch(XF_Controller_Request_Abstract $request = null, $runRouter = true)
+	{
 		$this->_dispath_count++;
 		
 		if ($request != null)
@@ -228,9 +253,7 @@ class XF_Controller_Front
 		elseif ($this->_dispath_count >= 5)
 		{
 			XF_Functions::writeErrLog('URI:'.$this->_request->getRequestUrl().' - loop forever dispatch controller');
-			$e = new XF_Exception('loop forever dispatch controller');
-			echo $e;
-			return;
+			throw new XF_Exception('loop forever dispatch controller');
 		}
 		else
 		{
@@ -241,8 +264,7 @@ class XF_Controller_Front
 		//没有找到正确的模块
 		if ($this->_request->getModule() == 'unknown')
 		{
-			$this->_plugin_manage->exception404($this->_request);
-			return;
+			throw new XF_Exception('404 Not found!', 404);
 		}
 		
 		//加载控制器
@@ -263,42 +285,23 @@ class XF_Controller_Front
 			$controllerName.= ucfirst($this->_request->getController()).'Controller';
 			if (class_exists($controllerName, FALSE))
 			{
-				try 
-				{
-					$this->_plugin_manage->preDispatch($this->_request);
-					$this->_controller_instance = new $controllerName();
-					$this->_plugin_manage->postDispatch($this->_request);
-				}
-				catch (XF_Exception $e)
-				{
-					$this->_plugin_manage->exception($this->_request, $e);
-				}
+				$this->_plugin_manage->preDispatch($this->_request);
+				$this->_controller_instance = new $controllerName();
+				$this->_plugin_manage->postDispatch($this->_request);
 			}
 		}
 		if ($this->_controller_instance == null)
 		{
-			$this->_plugin_manage->exception404($this->_request);
+			throw new XF_Exception('404 Not found!', 404);
 		}
 		elseif ($this->_controller_instance instanceof XF_Controller_Interface)
 		{
-			try 
-			{
-				$this->_controller_instance->doAction();
-			}
-            catch (XF_Exception $e)
-			{
-				try
-				{
-					$this->_plugin_manage->exception($this->_request,new XF_Exception($e->getMessage(), $e->getCode()));
-				}
-				catch (XF_Exception $e){
-					echo $e;
-				}
-			}
+
+			$this->_controller_instance->doAction();
 		}
 		else 
 		{
-			$this->_plugin_manage->exception404($this->_request);
+			throw new XF_Exception('404 Not found!', 404);
 		}
 	}
 }

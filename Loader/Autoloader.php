@@ -46,6 +46,7 @@ class XF_Loader_Autoloader
      */
     public function autoload($class)
     {
+    	$stime = microtime(true);
         if ($file = $this->_getFileName($class))
         {
             if (is_file($file))
@@ -54,7 +55,8 @@ class XF_Loader_Autoloader
             	if (!class_exists($class) && !interface_exists($class))
             		throw new XF_Loader_Exception("无法加载类或接口：".$class.'('.$file.')');
             }
-        } 	
+        }
+       XF_Application::getInstance()->addLoadFileTime(microtime(true) - $stime);
     }
 
     /**

@@ -26,7 +26,9 @@ class secache{
     var $schema_struct = array('size','free','lru_head','lru_tail','hits','miss'); 
     var $ver = '$Rev: 3 $';
     var $name = '系统默认缓存(文件型)';
-
+	
+    var $idx_node_base;
+    
     function workat($file){
 
         $this->_file = $file.'.php';
@@ -61,7 +63,7 @@ class secache{
         }else{
             $this->_rs = fopen($this->_file,'rb+') or $this->trigger_error('Can\'t open the cachefile: '.realpath($this->_file),E_USER_ERROR);
             $this->_seek($this->header_padding);
-            $info = unpack('V1max_size/a*ver',fread($this->_rs,$this->info_size));
+            $info = @unpack('V1max_size/a*ver',fread($this->_rs,$this->info_size));
             if($info['ver']!=$this->ver){
                 $this->_format(true);
             }else{
@@ -353,7 +355,7 @@ class secache{
     function _get_node_root($key){
         $this->_seek(hexdec(substr($key,0,4))*4+$this->idx_base_pos);
         $a= fread($this->_rs,4);
-        list(,$offset) = unpack('V',$a);
+        list(,$offset) = @unpack('V',$a);
         return $offset;
     }
 
@@ -437,7 +439,7 @@ class secache{
 
     function _get_node($offset){
         $this->_seek($offset*$this->idx_node_size + $this->idx_node_base);
-        $info = unpack('V1next/V1prev/V1data/V1size/V1lru_right/V1lru_left/H*key',fread($this->_rs,$this->idx_node_size));
+        $info = @unpack('V1next/V1prev/V1data/V1size/V1lru_right/V1lru_left/H*key',fread($this->_rs,$this->idx_node_size));
         $info['offset'] = $offset;
         return $info;
     }
@@ -462,7 +464,7 @@ class secache{
 
         if($free = $this->_get_schema($schema_id,'free')){ //如果lru里有链表
             $this->_seek($free);
-            list(,$next) = unpack('V',fread($this->_rs,4));
+            list(,$next) = @unpack('V',fread($this->_rs,4));
             $this->_set_schema($schema_id,'free',$next);
             return $free;
         }elseif($lru_freed){
@@ -488,7 +490,7 @@ class secache{
 
     function _get_dcur_pos(){
         $this->_seek($this->dfile_cur_pos);
-        list(,$ds_offset) = unpack('V',fread($this->_rs,4));
+        list(,$ds_offset) = @unpack('V',fread($this->_rs,4));
         return $ds_offset;
     }
     function _set_dcur_pos($pos){
@@ -514,7 +516,7 @@ class secache{
     function _dfollow($pos,&$c){
         $c++;
         $this->_seek($pos);
-        list(,$next) = unpack('V1',fread($this->_rs,4));
+        list(,$next) = @unpack('V1',fread($this->_rs,4));
         if($next){
             return $this->_dfollow($next,$c);
         }else{
@@ -524,23 +526,23 @@ class secache{
 
     function _free_node($pos){
         $this->_seek($this->idx_free_pos);
-        list(,$prev_free_node) = unpack('V',fread($this->_rs,4));
+        list(,$prev_free_node) = @unpack('V',fread($this->_rs,4));
         $this->_puts($pos*$this->idx_node_size+$this->idx_node_base,pack('V',$prev_free_node).str_repeat("\0",$this->idx_node_size-4));
         return $this->_puts($this->idx_free_pos,pack('V',$pos));
     }
 
     function _alloc_idx($data){
         $this->_seek($this->idx_free_pos);
-        list(,$list_pos) = unpack('V',fread($this->_rs,4));
+        list(,$list_pos) = @unpack('V',fread($this->_rs,4));
         if($list_pos){
 
             $this->_seek($list_pos*$this->idx_node_size+$this->idx_node_base);
-            list(,$prev_free_node) = unpack('V',fread($this->_rs,4));
+            list(,$prev_free_node) = @unpack('V',fread($this->_rs,4));
             $this->_puts($this->idx_free_pos,pack('V',$prev_free_node));
 
         }else{
             $this->_seek($this->idx_seq_pos);
-            list(,$list_pos) = unpack('V',fread($this->_rs,4));
+            list(,$list_pos) = @unpack('V',fread($this->_rs,4));
             $this->_puts($this->idx_seq_pos,pack('V',$list_pos+1));
         }
         return $this->_create_node($list_pos,$data);
@@ -561,10 +563,10 @@ class secache{
         $info = array_flip($this->schema_struct);
 
         $this->_seek(60+$id*$this->schema_item_size);
-        unpack('V1'.implode('/V1',$this->schema_struct),fread($this->_rs,$this->schema_item_size));
+        @unpack('V1'.implode('/V1',$this->schema_struct),fread($this->_rs,$this->schema_item_size));
 
         $this->_seek(60+$id*$this->schema_item_size + $info[$key]*4);
-        list(,$value) =unpack('V',fread($this->_rs,4));
+        list(,$value) =@unpack('V',fread($this->_rs,4));
         return $value;
     }
 
@@ -572,7 +574,7 @@ class secache{
         $schema = array();
         for($i=0;$i<16;$i++){
             $this->_seek(60+$i*$this->schema_item_size);
-            $info = unpack('V1'.implode('/V1',$this->schema_struct),fread($this->_rs,$this->schema_item_size));
+            $info = @unpack('V1'.implode('/V1',$this->schema_struct),fread($this->_rs,$this->schema_item_size));
             if($info['size']){
                 $info['id'] = $i;
                 $schema[$i] = $info;

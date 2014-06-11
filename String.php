@@ -175,6 +175,11 @@ class XF_String
 	 */
 	public static function text($content) {
 		$content = str_replace('&nbsp;', '', $content);
+		$content = str_replace("\t", '', $content);
+		$content = str_replace("\r\n", '', $content);
+		$content = str_replace("\n\r", '', $content);
+		$content = str_replace(" ", '', $content);
+		$content = str_replace("　", '', $content);
 		$content = self::clearJs($content);
 		//$content = self::clearStyle($content);
 		$content = strip_tags($content);

@@ -130,14 +130,6 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		//当前Action是否存在文件缓存
 		if ($content = $this->_checkCacheContent())
 		{
-			//启用GZIP
-			if (function_exists('gzencode') && ob_get_contents() == '')
-			{
-				$content = gzencode($content, 9);
-				header('Content-Encoding:gzip');
-		    	header('Vary:Accept-Encoding');
-		    	header('Content-Length:'.strlen($content));
-			}
 		    echo $content;
 			return;
 		}
@@ -348,19 +340,6 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 		{
 			return $html;
 		}
-		//启用GZIP
-		
-		if (function_exists('gzencode') && ob_get_contents() == '')
-		{
-			ob_start();
-			XF_Controller_Plugin_Manage::getInstance()->postOutput();
-			$str = ob_get_clean();
-			$html .= $str;
-			$html = gzencode($html, 9);
-			header('Content-Encoding:gzip');
-		    header('Vary:Accept-Encoding');
-		    header('Content-Length:'.strlen($html));
-		}
 		echo $html;	
 	}
 	
@@ -399,7 +378,14 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 			if (!is_file($cache_file.'.php')) return null;
 			$this->_cache_instance->setCacheSaveFile($cache_file);
 		}
-
+		
+		//是否存强制清除缓存
+		if (XF_DataPool::getInstance()->get('clearActionCache') === true)
+		{
+			$this->_cache_instance->remove($key);
+			return null;
+		}
+		
 		$content = $this->_cache_instance->read($key);
 		if ($content == XF_CACHE_EMPTY)
 		{
@@ -419,7 +405,6 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 			
 			//清除布局标记
 			$content = str_replace($matches[0], '', $content);
-			
 			//执行布局对象，并渲染布局模板
 			if ($layout instanceof XF_View_Layout_Abstract)
 			{

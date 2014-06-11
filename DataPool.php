@@ -91,6 +91,16 @@ class XF_DataPool
 	}
 	
 	/**
+	 * 使一个值一直累计数值
+	 * @param string $key 键名称
+	 * @param number $val	值
+	 */
+	public function accumulativeNumber($key, $val)
+	{
+		$this->_data_pools[$key] = isset($this->_data_pools[$key]) ? $this->_data_pools[$key] + floatval($val) : floatval($val);
+	}
+	
+	/**
 	 * 更新池中的内容
 	 * @param string $key 键
 	 * @param mixed $value 值

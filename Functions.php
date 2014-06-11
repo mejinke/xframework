@@ -294,7 +294,7 @@ class XF_Functions
 	    	//有多少个12月
 	    	$x = floor($sign / 12);
 	    	if($x == 0)
-	    		return date('Y-m', mktime(0, 0, 0, $sign, 1, $tmp_year));
+	    		return date('Y-m', mktime(0, 0, 0, 12-$sign, 1, $tmp_year));
 	    	return date('Y-m', mktime(0, 0, 0, $sign-12*$x, 1, $tmp_year-$x));
 	    }
 	    //获取下X个月

@@ -69,7 +69,7 @@ class XF_Cookie implements XF_Cookie_Interface
 			$this->_lock = TRUE;
 			if ($domain == NULL)
 			{
-				$domain = XF_Config::getInstance()->getDomain();
+				$domain = '.'.XF_Config::getInstance()->getDomain();
 			}
 			
 			if ($content == null)

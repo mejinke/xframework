@@ -55,7 +55,8 @@ class XF_Acl_Tool
 				$classname = $cname = str_replace('.php', '', $l);
 				if ($moduleName !='Default')
 					$classname = $moduleName.'_'.$classname;
-				if (class_exists($classname))
+
+				if (class_exists($classname) && strpos($classname, 'Abstract') === false)
 				{
 					$this->_map[$classname] = array();
 					$ref = new ReflectionClass(new $classname());

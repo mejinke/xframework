@@ -50,6 +50,9 @@ class XF_Exception extends Exception
 	        print_r($_querys);
 	        echo '<br/>ReadCache('.XF_DataPool::getInstance()->get('CacheTimeCount', 0).'s)<br/>';
 			print_r(XF_DataPool::getInstance()->get('CacheTimeList', array()));
+			echo '<br/>RunApplication:'.XF_DataPool::getInstance()->get('RunApplication').'s';
+			echo '<br/>RunBootstrap:'.XF_DataPool::getInstance()->get('RunBootstrap').'s';
+			echo '<br/>LoadFile:'.sprintf("%.5fs", XF_Application::getInstance()->loadFileTime());
 	        echo '<br/>RunTime:'.sprintf('%.5f', microtime(true)-APP_START_TIME).'s';
 	        echo '</pre>';
 	        echo '</body></html>';

@@ -51,7 +51,11 @@ class XF_View_Helper_Header_Stylesheet
 	 */
 	public function append($str)
 	{
-		$this->_stylesheets[] = XF_String::text($str);
+		//防止与缓存中的路径重复
+		$path = XF_View::getInstance()->getResourcePath();
+		$str = str_replace($path, '', $str);
+		
+		$this->_stylesheets[] = XF_String::text($path.$str);
 		return $this;
 	}
 	
@@ -63,7 +67,11 @@ class XF_View_Helper_Header_Stylesheet
 	 */
 	public function prepend($str)
 	{
-		array_unshift($this->_stylesheets, XF_String::text($str));
+		//防止与缓存中的路径重复
+		$path = XF_View::getInstance()->getResourcePath();
+		$str = str_replace($path, '', $str);
+		
+		array_unshift($this->_stylesheets, XF_String::text($path.$str));
 		return $this;
 	}
 	

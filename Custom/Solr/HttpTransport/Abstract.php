@@ -65,7 +65,7 @@ abstract class Apache_Solr_HttpTransport_Abstract implements Apache_Solr_HttpTra
 			// double check we didn't get 0 for a timeout
 			if ($this->_defaultTimeout <= 0)
 			{
-				$this->_defaultTimeout = 60;
+				$this->_defaultTimeout = 30;
 			}
 		}
 		

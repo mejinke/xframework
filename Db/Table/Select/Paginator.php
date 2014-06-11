@@ -162,7 +162,6 @@ class XF_Db_Table_Select_Paginator
 		
 		//获取总页数
 		$this->_page_count = ceil($this->_data_count / $this->_page_size);
-		
 		return $this;
 	}
 	

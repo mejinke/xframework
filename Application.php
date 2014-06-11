@@ -33,6 +33,12 @@ class XF_Application
      */
     private $_is_command_line = FALSE;
     
+    /**
+     * 加载所有文件总时间
+     * @var int
+     */
+    private $_load_file_time = 0;
+    
  	private function __construct(){}
     private function __clone(){}
     
@@ -40,14 +46,15 @@ class XF_Application
      * 获取实例
      * @access public
      * @param bool $isCommandLine 是否为命令行模式? 默认为 FALSE
+     * @param bool $is_compile_model 是否编译框架代码再运行？默认为TRUE
      * @return XF_Application
      */ 
-	public static function getInstance($isCommandLine = FALSE)
+	public static function getInstance($isCommandLine = FALSE, $is_compile_model = TRUE)
     {
         if (self::$_instance === null)
         {
             self::$_instance = new self();
-            self::$_instance->_init($isCommandLine);
+            self::$_instance->_init($isCommandLine, $is_compile_model);
         }
         return self::$_instance;
     }
@@ -57,12 +64,12 @@ class XF_Application
      * @access private
      * @return void
      */
-    private function _init($isCommandLine)
+    private function _init($isCommandLine, $is_compile_model)
     {
     	$this->_is_command_line = $isCommandLine;
     	if ($isCommandLine === FALSE)
     	{
-	    	$this->_runTime();
+	    	$this->_runTime($is_compile_model);
 	    	//设定错误和异常处理
 	        register_shutdown_function(array('XF_Application','fatalError'));
 	        set_error_handler(array('XF_Application','appError'));
@@ -72,7 +79,7 @@ class XF_Application
     	}
     	else
     	{
-    		$this->_runCommandLineTime();
+    		$this->_runCommandLineTime($is_compile_model);
     		XF_Loader_Autoloader::getInstance();
     	}
     }
@@ -105,7 +112,7 @@ class XF_Application
 	        else
 	        {
 	        	XF_Functions::writeErrLog($message);
-	          	throw new XF_Exception($message);
+	          	XF_Controller_Plugin_Manage::getInstance()->exception(XF_Controller_Request_Http::getInstance(), new XF_Exception($e['message']));
 	        }
 	        break;
 	    }
@@ -140,7 +147,7 @@ class XF_Application
 		        else
 		        {
 		        	XF_Functions::writeErrLog($message);
-		          	throw new XF_Exception($message);
+		          	XF_Controller_Plugin_Manage::getInstance()->exception(XF_Controller_Request_Http::getInstance(), new XF_Exception($e['message']));
 		        }
 			    break;
 		    /*case E_STRICT:
@@ -229,12 +236,16 @@ class XF_Application
 
     /**
      * 加载框架运行环境
+     * @param bool $is_compile_model 是否编译框架代码再运行？默认为TRUE
      * @return void
      */
-    private function _runTime()
+    private function _runTime($is_compile_model = TRUE)
     {
-    	//require XF_PATH.'/Loader/Autoloader.php';
-    	//return;
+    	if ($is_compile_model !== TRUE)
+    	{
+    		require XF_PATH.'/Loader/Autoloader.php';
+    		return;
+    	}
     	$file = TEMP_PATH.'/RunTime.php';
     	if (!is_file($file))
     	{
@@ -267,7 +278,6 @@ class XF_Application
 	    		'Db/Table/Select/Abstract.php',
 				'Db/Table/Select/Mysql.php',
 				'Db/Config/Interface.php',
-				'Db/Config.php',
 	    		'Db/Drive/Abstract.php',
 				'Db/Drive/Mysql.php',
 				'View/Helper.php',
@@ -292,10 +302,17 @@ class XF_Application
     
 	/**
      * 加载命令行下的框架运行环境
+     * @param bool $is_compile_model 是否编译框架代码再运行？默认为TRUE
      * @return void
      */
-    private function _runCommandLineTime()
+    private function _runCommandLineTime($is_compile_model = TRUE)
     {
+    	
+    	if ($is_compile_model === TRUE)
+    	{
+    		require XF_PATH.'/Loader/Autoloader.php';
+    		return;
+    	}
     	$file = TEMP_PATH.'/~RunTime.php';
     	if (!is_file($file))
     	{
@@ -317,7 +334,6 @@ class XF_Application
 				'Db/Table/Select/Mysql.php',
 				'Db/Config/Interface.php',
 				'Db/Config.php',
-				'Db/Drive/Interface.php',
 	    		'Db/Drive/Abstract.php',
 				'Db/Drive/Mysql.php'
 	    	);
@@ -335,11 +351,31 @@ class XF_Application
     }
     
     /**
+     * 添加文件加载时间
+     * @param int $number
+     * @return void
+     */
+    public function addLoadFileTime($number)
+    {
+    	$this->_load_file_time += floatval($number);
+    }
+    
+    /**
+     * 获取文件加载的总时间
+     * @return float
+     */
+    public function loadFileTime()
+    {
+    	return $this->_load_file_time;
+    }
+    
+    /**
      * 启动框架
      * @return void
      */
     public function run()
     {
+    	XF_DataPool::getInstance()->add('RunApplication', sprintf("%.6f", microtime(true) - APP_START_TIME));
     	//如果是命令行模式则直接返回
     	if ($this->_is_command_line === TRUE) return;
         $this->getBootstrap()->run();

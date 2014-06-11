@@ -38,7 +38,7 @@ class XF_Controller_Request_Http extends XF_Controller_Request_Abstract
 				{
 					self::$_instance->setPost($key, $val);
 				}
-                unset($_POST);
+                //unset($_POST);
 			}
 			if (is_array($_FILES))
 			{
@@ -48,7 +48,7 @@ class XF_Controller_Request_Http extends XF_Controller_Request_Abstract
 				}
 			}
 			
-			unset($_GET);
+			//unset($_GET);
 		}
 		return self::$_instance;
 	}

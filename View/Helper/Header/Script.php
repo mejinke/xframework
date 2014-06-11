@@ -51,7 +51,11 @@ class XF_View_Helper_Header_Script
 	 */
 	public function appendFile($str)
 	{
-		$this->_scripts[] = XF_String::text($str);
+		//防止与缓存中的路径重复
+		$path = XF_View::getInstance()->getResourcePath();
+		$str = str_replace($path, '', $str);
+		
+		$this->_scripts[] = XF_String::text($path.$str);
 		return $this;
 	}
 	
@@ -63,7 +67,11 @@ class XF_View_Helper_Header_Script
 	 */
 	public function prependFile($str)
 	{
-		array_unshift($this->_scripts, XF_String::text($str));
+		//防止与缓存中的路径重复
+		$path = XF_View::getInstance()->getResourcePath();
+		$str = str_replace($path, '', $str);
+		
+		array_unshift($this->_scripts, XF_String::text($path.$str));
 		return $this;
 	}
 

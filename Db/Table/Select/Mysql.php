@@ -65,7 +65,7 @@ class XF_Db_Table_Select_Mysql extends XF_Db_Table_Select_Abstract
 			elseif ($where_type == 'OR')
 			{
 				$this->_adv_where = XF_String::str_replace_once(' WHERE ', '', $this->_adv_where);
-				$this->_adv_where = ' WHERE ('.$this->_adv_where.') OR ('.XF_Db_Tool::whereFormat($var).')';
+				$this->_adv_where = ' WHERE (('.$this->_adv_where.') OR ('.XF_Db_Tool::whereFormat($var).'))';
 			} 
 		}
 		return $this;
@@ -164,7 +164,14 @@ class XF_Db_Table_Select_Mysql extends XF_Db_Table_Select_Abstract
 	
 	public function execute($var, $packing = false)
 	{
-		$this->_allotDatabaseServer();
+		if(strpos(strtolower(trim($var)), 'select') === 0)
+		{
+			$this->_allotDatabaseServer();
+		}
+		else
+		{
+			$this->_allotDatabaseServer('UPDATE');
+		}
 		//检测缓存文件
 		$cacheFile = TEMP_PATH.'/Cache/Data/'.$this->_db_name.'/'.$this->_db_table->getTableName().'/'.md5($var).'.php';
 		 
