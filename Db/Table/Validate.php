@@ -332,6 +332,12 @@ class XF_Db_Table_Validate
 				}
 				break;
 		}
+		
+		//字段值为 '$NULL' 时直接通过验证 2014-09-3
+		if (isset($data[$key]) && $data[$key] == '$NULL')
+		{
+			$validateOk = true;
+		}
 
 		//没有错误
 		if($validateOk)

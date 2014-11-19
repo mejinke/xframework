@@ -56,9 +56,15 @@ class XF_Application_Bootstrap
 		foreach ($methods as $m)
 		{
 			if ($this->_auto_call === FALSE)
+			{
 				break;
+			}
 			if (strpos($m->name, 'init') === 0)
+			{
+				$stime = microtime(true);
 				$this->{$m->name}();
+				XF_DataPool::getInstance()->addList('Bootstrap_Inits', $m->name.' '.sprintf('%.5fs', microtime(true) - $stime));
+			}
 		}
 	}
 
@@ -79,13 +85,16 @@ class XF_Application_Bootstrap
 		$st = microtime(true);
 		$this->checkDomain();
 		$this->runStartup();
+		XF_DataPool::getInstance()->addList('Bootstrap_Inits', 'runStartup '.sprintf('%.5fs', microtime(true) - $st));
 		if (!empty($_GET['xsessid']))
 		{
 			$session_id = XF_Functions::authCode(urlencode($_GET['xsessid']), 'DECODE');
 			if ($session_id !='')
 				session_id($session_id);
 		}
+		$stt = microtime(true);
 		session_start();
+		XF_DataPool::getInstance()->addList('Bootstrap_Inits', 'session_start '.sprintf('%.5fs', microtime(true) - $stt));
 		header("Content-type:text/html;charset=utf-8");
 		$this->_loadInit();
 		XF_DataPool::getInstance()->add('RunBootstrap', sprintf("%.6f", microtime(true) - $st));

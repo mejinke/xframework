@@ -71,39 +71,7 @@ class XF_Cache_SECache extends XF_Cache_Abstract
 			
 		$secache = new secache();
 		$secache->workat($this->_cache_file);
-		
-		$content = NULL;
-		$chunk_key = XF_DataPool::getInstance()->get(self::ChunkCacheKeyIdentify);
-		//区域缓存key不为空
-		if ($chunk_key != false)
-		{
-			$content = $this->_getData($chunk_key);
-			if ($content != NULL)
-			{
-				return is_array($content) && isset($content[$key]) ? $content[$key] : XF_CACHE_EMPTY;
-			}
-			if ($secache->fetch($chunk_key, $content))
-			{
-				$this->_addReadDebug($start_time, 'SECache');
-			
-				//缓存是否过过期
-				preg_match('/<cache:(.*)?:cache>/', $content, $tmp);
-				if(isset($tmp[1]))
-				{
-					$d = explode('_', $tmp[1]);
-					if ($d[1]==0)
-						$content = str_replace($tmp[0], '', $content);
-					if (time() > $d[0]+$d[1]*60)
-						return XF_CACHE_EMPTY;
-					else 
-						$content = str_replace($tmp[0], '', $content);
-				}
-				$content = unserialize($content);	
-				$this->_pushData($chunk_key, $content);
-			}
-			return is_array($content) && isset($content[$key]) ? $content[$key] : XF_CACHE_EMPTY;
-		}
-		
+	
 		$content = $this->_getData($key);
 		if ($content != NULL) return $content;
 		if($secache->fetch($key, $content))

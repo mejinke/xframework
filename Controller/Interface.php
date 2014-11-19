@@ -31,18 +31,22 @@ interface XF_Controller_Interface
     /**
      * 获取参数
      * @access public
-     * @param string $name
+     * @param string $key 获取的参数名称
+     * @param mixed $default 默认值 【默认为NULL】
+     * @param array $replace 替换值 【默认为NULL，不设置】
      * @return mixed
      */
-    public function getParam($name);
+    public function getParam($key , $default = NULL, Array $replace = NULL);
 
     /**
 	 * 获取参数，预期该参数的值为数字
 	 * @access public
 	 * @param string $key 参数名称
 	 * @param number $default 如果该参数不存在，需要返回的值，默认为 0
+	 * @param array $replace 替换值 【默认为NULL，不设置】
+	 * @return mixed
 	 */
-	public function getParamNumber($key, $default = 0);
+	public function getParamNumber($key, $default = 0, Array $replace = NULL);
 	
     /**
      * 获取所有的参数

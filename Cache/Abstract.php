@@ -14,18 +14,6 @@
 abstract class XF_Cache_Abstract implements XF_Cache_Interface
 {
 	/**
-	 * 区域批量缓存识标
-	 * @var string
-	 */
-	const ChunkCacheIdentify = 'XF_ChunkCacheIdentify';
-	
-	/**
-	 * 区域批量缓存统一key识标
-	 * @var string
-	 */
-	const ChunkCacheKeyIdentify = 'XF_ChunkCacheKeyIdentify';
-	
-	/**
 	 * 缓存时长 单位：分钟
 	 * @var int
 	 */
@@ -74,31 +62,6 @@ abstract class XF_Cache_Abstract implements XF_Cache_Interface
 	protected function _getData($key)
 	{
 		return 	isset($this->_tmp_data[$key]) ? $this->_tmp_data[$key] : NULL;
-	}
-	
-	/**
-	 * 开始块缓存
-	 * @access public
-	 * @param int $minute 缓存时间：分钟
-	 * @param string $cacheKeyName 当前区域缓存保存的key名 默认为NULL
-	 * @return bool
-	 */
-	public function begin($minute, $cacheKeyName = NULL)
-	{
-		if (!is_numeric($minute) || $minute <= 0) return false;
-		XF_DataPool::getInstance()->add(self::ChunkCacheIdentify, get_class($this).'$'.strval($minute));
-		if (is_string($cacheKeyName) && !empty($cacheKeyName))
-			XF_DataPool::getInstance()->add(self::ChunkCacheKeyIdentify, md5($cacheKeyName));
-	}
-	
-	/**
-	 * 结束块缓存
-	 * @access public
-	 * @return void
-	 */
-	public function end()
-	{
-		XF_DataPool::getInstance()->remove(self::ChunkCacheIdentify)->remove(self::ChunkCacheKeyIdentify);
 	}
 	
 	/**

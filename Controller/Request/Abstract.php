@@ -202,8 +202,19 @@ abstract class XF_Controller_Request_Abstract
 	{
 		if (null === $value && isset($this->_params[$key]))
 			unset($this->_params[$key]);
-		elseif (null !== $value) 
-            $this->_params[$key] = $filtration ? XF_String::clearJs($value) : $value;
+		elseif (null !== $value)
+		{
+			if (strpos($key, '[]') !== false)
+			{
+				$key = str_replace('[]', '', $key);
+				$this->_params[$key][] = $filtration ? XF_String::clearJs($value) : $value;
+			}
+			else
+			{
+				$this->_params[$key] = $filtration ? XF_String::clearJs($value) : $value;
+			}
+		} 
+            
         return $this;
 	}
 	

@@ -308,7 +308,7 @@ class XF_Application
     private function _runCommandLineTime($is_compile_model = TRUE)
     {
     	
-    	if ($is_compile_model === TRUE)
+    	if ($is_compile_model === FALSE)
     	{
     		require XF_PATH.'/Loader/Autoloader.php';
     		return;

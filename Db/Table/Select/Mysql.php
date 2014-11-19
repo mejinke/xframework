@@ -140,7 +140,18 @@ class XF_Db_Table_Select_Mysql extends XF_Db_Table_Select_Abstract
 	public function setGroup($var)
 	{
 		if (XF_Functions::isEmpty($var) == false)
-			$this->_adv_order = ' GROUP BY '.$var;
+		{
+			//是否存在排序
+			if (XF_Functions::isEmpty($this->_adv_order) == false)
+			{
+				$this->_adv_group = ' #GROUP BY '.$var;
+			}
+			else
+			{
+				$this->_adv_group = ' GROUP BY '.$var;
+			}
+		}
+			
 		return $this;
 	}
 	

@@ -22,39 +22,75 @@ class XF_Db_Tool
 	 */
 	public static function whereFormat($var)
 	{
-
 		if (!is_array($var))
+		{
 			return "($var)";
+		}
 		else
-		{	$string = '';
-			foreach ($var as $key=>$val)
+		{	
+			$string = '';
+			foreach ($var as $key => $val)
 			{
-				$val = self::escape($val);
+				if (is_array($val))
+				{
+					$_val = array();
+					foreach ($val as $v)
+					{
+						$_val[] = "'".self::escape($v)."'";
+					}
+					$val = implode(',', $_val);
+				}
+				else
+				{
+					$val = self::escape($val);
+				}
+				
 				$arr = explode(',', $key);
 				if (isset($arr[1]))
 				{
-					if ($arr[1]=='like%.')
+					switch ($arr[1])
 					{
-						$arr[1] = 'LIKE';
-						$val = "%$val";
-					}
-					elseif ($arr[1] == 'like.%')
-					{
-						$arr[1] = 'LIKE';
-						$val = "$val%";
-					}
-					elseif ($arr[1] == 'like%.%')
-					{
-						$arr[1] = 'LIKE';
-						$val = "%$val%";
+						case 'like%.':
+							$arr[1] = 'LIKE';
+							$val = "%$val";
+							break;
+						case 'like.%':
+							$arr[1] = 'LIKE';
+							$val = "$val%";
+							break;
+						case 'like%.%':
+							$arr[1] = 'LIKE';
+							$val = "%$val%";
+							break;
+						case 'in':
+							$arr[1] = 'IN';
+							$val = '('.$val.')';
+							break;
+						case 'notin':
+							$arr[1] = 'NOT IN';
+							$val = '('.$val.')';
+							break;
 					}
 				}
 				else
+				{
 					$arr[1] = '=';
-				if ($arr[1] == 'pk')
-					$string .= empty($string) ? "(`".$arr[0]."` ".$val.")" : " AND (`".$arr[0]."` ".$val.")";
-				else
-					$string .= empty($string) ? "(`".$arr[0]."`".$arr[1]."'".$val."')" : " AND (`".$arr[0]."`".$arr[1]."'".$val."')";
+				}
+					
+				switch ($arr[1])
+				{
+					case 'pk':
+						$string .= empty($string) ? "(`".$arr[0]."` ".$val.")" : " AND (`".$arr[0]."` ".$val.")";
+						break;
+					case 'IN':
+						$string .= empty($string) ? "(`".$arr[0]."` IN ".$val.")" : " AND (`".$arr[0]."` IN ".$val.")";
+						break;
+					case 'NOT IN':
+						$string .= empty($string) ? "(`".$arr[0]."` NOT IN ".$val.")" : " AND (`".$arr[0]."` NOT IN ".$val.")";
+						break;
+					default:
+						$string .= empty($string) ? "(`".$arr[0]."`".$arr[1]."'".$val."')" : " AND (`".$arr[0]."`".$arr[1]."'".$val."')";
+				}
 			}
 			return $string;
 		}

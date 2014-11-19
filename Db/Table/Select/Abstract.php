@@ -111,7 +111,13 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 * @var mixed
 	 */
 	protected $_adv_order = null;
-
+	
+	/**
+	 * 分组方式
+	 * @var mixed
+	 */
+	protected $_adv_group = null;
+	
 	/**
 	 * 获取指定长度的资料  例 0,100
 	 * @var mixed
@@ -136,6 +142,11 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 */
 	protected $_reset_result_key = false;
 	
+	/**
+	 * 打包成对象后清除该对象没有被使用的关联设置
+	 * @var bool
+	 */
+	protected $_clean_field_associate_setup = true;
 	
 	/**
 	 * 设置缓存方式
@@ -149,6 +160,14 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		return $this;
 	}
 	
+	/**
+	 * 清除没有使用的字段关联设置
+	 */
+	public function cleanNotUseFieldAssociateSetup($clean = true)
+	{
+		$this->_clean_field_associate_setup = $clean;
+		return $this;
+	}
 	
 	/**
 	 * 是否自动加载 init
@@ -177,6 +196,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 										$this->_adv_find, 
 										$this->_adv_where, 
 										$this->_adv_order, 
+										$this->_adv_group,
 										FALSE, 
 										FALSE);
 		$dataCount =  isset($tep[0]['count']) ? $tep[0]['count'] : 0;
@@ -228,6 +248,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 													$this->_adv_find, 
 													$this->_adv_where, 
 													$this->_adv_order, 
+													$this->_adv_group,
 													false, 
 													false);
 					$this->_setDataCache($result);
@@ -267,6 +288,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 													$this->_adv_find, 
 													$this->_adv_where, 
 													$this->_adv_order, 
+													$this->_adv_group,
 													$size, 
 													$offset);
 					$this->_setDataCache($result);
@@ -354,6 +376,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 												$this->_adv_find, 
 												$this->_adv_where, 
 												$this->_adv_order, 
+												$this->_adv_group,
 												$size, 
 												($p-1)*$size);
 					$this->_setDataCache($result);
@@ -419,6 +442,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 											$this->_adv_find, 
 											$this->_adv_where, 
 											$this->_adv_order, 
+											$this->_adv_group,
 											$this->_adv_limit[1], 
 											$this->_adv_limit[0]);
 			$this->_setDataCache($result);
@@ -452,6 +476,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 											$this->_adv_find,
 											$this->_adv_where,
 											$this->_adv_order,
+											$this->_adv_group,
 											$this->_adv_limit[1],
 											$this->_adv_limit[0]);
 			//设置缓存
@@ -548,23 +573,25 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 */
 	protected  function _getDataCache($file = null)
 	{
+		$content = XF_CACHE_EMPTY;
+		
+		if ($file == null)
+		{
+			$file = $this->_getDataCacheFileName();
+		}
+				
 		if ($this->_cache_class instanceof  XF_Cache_Interface)
 		{
-			if ($file == null)
-				$file = $this->_getDataCacheFileName();
-			return $this->_cache_class->read($file);
+			$content = $this->_cache_class->read($file);
 		}
-		elseif (XF_DataPool::getInstance()->get(XF_Cache_Abstract::ChunkCacheIdentify) !== false)
-		{ 
-			$cache = XF_DataPool::getInstance()->get(XF_Cache_Abstract::ChunkCacheIdentify);
-			$tmp = explode('$', $cache);
-			if (count($tmp) != 2) return XF_CACHE_EMPTY;
-			$this->_cache_class = call_user_func(array($tmp[0], 'getInstance'));
-			$this->_data_cache_time = intval($tmp[1]);
-			if ($file == null) $file = $this->_getDataCacheFileName();
-			return $this->_cache_class->read($file);
+		
+		//如果正常缓存为NULL，再检测当前临时缓存
+		if ($content == XF_CACHE_EMPTY)
+		{
+			$content = XF_DataPool::getInstance()->getHash('TEMP_DATA_CACHE', md5($file), XF_CACHE_EMPTY);
 		}
-		return XF_CACHE_EMPTY;
+		
+		return $content;
 	}
 	
 	/**
@@ -582,6 +609,10 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 				$saveFile = $this->_getDataCacheFileName();
 			$this->_cache_class->setCacheTime($this->_data_cache_time)->add($saveFile, $data);
 		}
+		
+		//设置临时缓存 
+		XF_DataPool::getInstance()->addHash('TEMP_DATA_CACHE', md5($saveFile), $data);
+		
 		return true;
 	}
 	
@@ -593,19 +624,25 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	 */
 	protected function _packing($result , $emptyObject = true)
 	{
-	
+		
+		$_db_table = clone $this->_db_table;
+		if ($this->_clean_field_associate_setup == true)
+		{
+			$_db_table->cleanManualFieldAssociateSetting();	
+		}
+		
 		//如果查询资料不为数组，则返回空对象	
 		if (!is_array($result)) 
 		{
 			if ($emptyObject === true)
-				return array(clone $this->_db_table);
+				return array(clone $_db_table);
 			return false;
 		}
 		
 		//单一数据表资料
 		if (!isset($result[0]))
 		{
-			$entity = clone $this->_db_table;
+			$entity = clone $_db_table;
 			$entity->fillDataFromArray($result, false);
 			
 			//init
@@ -665,7 +702,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			$entityList = false;
 			foreach ($result as $key => $rs)
 			{
-				$entity = clone $this->_db_table;
+				$entity = clone $_db_table;
 				$entity->fillDataFromArray($rs, false);
 				//init
 				if (method_exists($entity, 'init') && $this->_auto_call_init)
@@ -673,7 +710,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 					
 				if ($this->_reset_result_key === true)
 				{
-					$entityList[$entity->{$this->_db_table->getPrimaryKey()}] = $entity;
+					$entityList[$entity->{$_db_table->getPrimaryKey()}] = $entity;
 				}
 				else
 				{
@@ -743,6 +780,11 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 	{
 		$ass = $table->getFieldAssociated();
 		$tep = array();
+		if (!is_array($ass) || $ass == null)
+		{
+			return $tep;
+		}
+		
 		foreach ($ass as $key => $val)
 		{
 			//是否需要自动关联数据
@@ -906,6 +948,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 							'size' => isset($vv[$assName[0]]['size']) ? $vv[$assName[0]]['size'] : null,
 							'where' => isset($vv[$assName[0]]['where']) ? $vv[$assName[0]]['where'] : null,
 							'order' => isset($vv[$assName[0]]['order']) ? $vv[$assName[0]]['order'] : null,
+							'_field' => isset($vv[$assName[0]]['_field']) && $vv[$assName[0]]['_field'] !='*' ? $vv[$assName[0]]['field'].','.$vv[$assName[0]]['_field'] : '*',
 							'oneToMany' => $vv[$assName[0]]['oneToMany'],
 							'autoinit' => $this->_db_table->getInitAutoExecuteMethodFromAssociate($assName[0])
 						);
@@ -936,17 +979,17 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			   						if ($mval['autoAssociated'] == true)
 			   						{
 			   							if (!empty($mval['where']))
-			   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
+			   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order'], $mval['_field']);
 			   							else
-			   								$table->setAssociatedAutoOnly($mk, $mval['size']);			
+			   								$table->setAssociatedAutoOnly($mk, $mval['size'], $mval['_field']);			
 			   						}
 			   						elseif (!empty($mval['where']))
 			   						{
-			   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order']);
+			   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order'], $mval['_field']);
 			   						}
 			   						else
 			   						{
-			   							$table->setAssociatedManualOnly($mk, $mval['size']);
+			   							$table->setAssociatedManualOnly($mk, $mval['size'], $mval['_field']);
 			   						}
 			   							
 			   					}
@@ -975,7 +1018,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 				   		}
 	
 				   		$select = $table->getTableSelect();
-				   		$select->setWhere($v['_other']['where'])->setWhereIn($field, array_values($v['data']))->setOrder($v['_other']['order'])->setLimit(false);
+				   		$select->setFindField($v['_other']['_field'])->setWhere($v['_other']['where'])->setWhereIn($field, array_values($v['data']))->setOrder($v['_other']['order'])->setLimit(false);
 				   		$sql = $select->getSql();
 				   		//是否为一对一查询 IN条件查询的每个值对应的查询结果可能是多条，所以需要再次分组
 				   		if ($v['_other']['oneToMany'] !== true)
@@ -1160,7 +1203,14 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		///防止直接调用此方法所造成的字段错误
 		$tmp = debug_backtrace();
 		if (!isset($tmp[0]['file']) || strpos(str_replace('\\', '/', $tmp[0]['file']), 'Db/Table/Abstract.php') == false)
+		{
+			$tmp = $this->_db_table->toArray();
+			if (is_array($tmp))
+			{
+				$data = array_merge($data, $tmp);
+			}
 			$data = $this->_db_table->getFormData($data);
+		}
 
 		$this->_db_drive_connect->showQuery($this->_show_query);
 		$this->_db_table->__updateBefore($this->_adv_where, $data);
@@ -1310,19 +1360,21 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 		{
 			$this->_selectDatabaseServer();
 			$this->_db_drive_connect = XF_Db_Drive_Mysql::getInstance();
-			$this->_db_drive_connect->setDatabaseName($this->_db_table->getDbName());
 		}
-			
+		
 		if ($this->_open_slave && $type == 'SELECT')
 		{ 
 			//if(rand(0, 1) == 0 && $this->_slave_db_count ==1 )
 			//	$this->_db_drive_connect->setDatabaseConnectionConfigInfo($this->_db_config);
 			//else 
 			$this->_db_drive_connect->setDatabaseConnectionConfigInfo($this->_slave_db_config);
-			return;
 		}
-
-		$this->_db_drive_connect->setDatabaseConnectionConfigInfo($this->_db_config);
+		else 
+		{
+			$this->_db_drive_connect->setDatabaseConnectionConfigInfo($this->_db_config);
+		}
+		
+		$this->_db_drive_connect->setDatabaseName($this->_db_table->getDbName());
 	}
 	
 	/**
@@ -1350,6 +1402,7 @@ abstract class XF_Db_Table_Select_Abstract implements XF_Db_Table_Select_Interfa
 			$this->_adv_in = null;
 			$this->_adv_not_in = null;
 			$this->_adv_order = null;
+			$this->_adv_group = null;
 			$this->_adv_limit = null;
 			$this->_show_query = false;
 			

@@ -171,15 +171,19 @@ class XF_String
 	/**
 	 * 输出纯文本内容 不含任何HTML标记
 	 * @param string $content 内容
+	 * @param bool $filt_space 是否过滤空格？默认为true
 	 * @return string
 	 */
-	public static function text($content) {
+	public static function text($content, $filt_space = true) {
 		$content = str_replace('&nbsp;', '', $content);
 		$content = str_replace("\t", '', $content);
 		$content = str_replace("\r\n", '', $content);
 		$content = str_replace("\n\r", '', $content);
-		$content = str_replace(" ", '', $content);
-		$content = str_replace("　", '', $content);
+		if ($filt_space == true)
+		{
+			$content = str_replace(" ", '', $content);
+			$content = str_replace("　", '', $content);
+		}
 		$content = self::clearJs($content);
 		//$content = self::clearStyle($content);
 		$content = strip_tags($content);

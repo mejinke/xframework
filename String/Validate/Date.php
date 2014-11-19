@@ -24,7 +24,7 @@ class XF_String_Validate_Date implements XF_Validate_Interface
 			return FALSE;
 		if (!is_numeric($tmp[0]) || !is_numeric($tmp[1]) || !is_numeric($tmp[2]))
 			return FALSE;
-		if ($tmp[0]<1970) return false;
+		if ($tmp[0]<1900) return false;
 		if ($tmp[1]<1 || $tmp[1] >12) return false;
 		if ($tmp[2]<1 || $tmp[2] > 31) return false;
 		return TRUE;

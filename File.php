@@ -25,7 +25,7 @@ class XF_File
 	{
 		if(!$fp = fopen($file, 'rb'))
 		{
-			throw new XF_File_Exception('Could not read this file!');
+			throw new XF_Exception('Could not read this file!');
 		}
 		else
 		{
@@ -48,7 +48,7 @@ class XF_File
 	{
 		if(!$fp = fopen($file, $mod))
 		{
-			throw new XF_File_Exception('Could not read this file!');
+			throw new XF_Exception('Could not read this file!');
 		}
 		else
 		{

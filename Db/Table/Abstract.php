@@ -146,9 +146,10 @@ abstract class XF_Db_Table_Abstract
 				$this->_result_array[$name][] = XF_Functions::numberToString($value);	
 			}
 			else
-				$this->_result_array[$name] = XF_Functions::numberToString($value);	
+			{
+				$this->_result_array[$name] = XF_Functions::numberToString($value);
+			}
 		}
-			
 	}
 	
 	/**
@@ -216,14 +217,16 @@ abstract class XF_Db_Table_Abstract
 		
 		$tmp = debug_backtrace();
 		$fromDBTable = false;
-		if ($tmp[1]['class'] == 'XF_Db_Table_Select_Abstract' && $tmp[1]['function'] == '_packing')
+		if ( isset($tmp[1]['class']) && $tmp[1]['class'] == 'XF_Db_Table_Select_Abstract' && $tmp[1]['function'] == '_packing')
+		{
 			$fromDBTable = true;
- 
+		}
+			
 		foreach ($var as $key => $val)
 		{
 			if (!isset($this->_result_array[$key]))
 				$this->_field_count++;
-			if (is_numeric($val))
+			if (is_numeric($val) && substr($val, 0, 1) != '0')
 			{
 				$tmp = explode('.', $val);
 				if (strlen($tmp[0]) <= 14)
@@ -248,16 +251,12 @@ abstract class XF_Db_Table_Abstract
 	public function toArray($get_primary = true)
 	{
 		if (!is_array($this->_result_array))
-			return null;
-		if ($get_primary)
-			return $this->_result_array;
-		else 
 		{
-			$var = $this->_result_array;
-			if (isset($var[$this->_primary_key]))
-				unset($var[$this->_primary_key]);
-			return $var;
+			return null;
 		}
+		$data = $this->_result_array;
+		$this->_filterDataFromCacheField($data, !$get_primary);
+		return $data;
 	}
 	
 	/**
@@ -268,14 +267,20 @@ abstract class XF_Db_Table_Abstract
 	public function getDBResultArray($get_primary = true)
 	{
 		if (!is_array($this->_db_result_array))
+		{
 			return null;
+		}
 		if ($get_primary)
+		{
 			return $this->_db_result_array;
+		}
 		else 
 		{
 			$var = $this->_db_result_array;
 			if (isset($var[$this->_primary_key]))
+			{
 				unset($var[$this->_primary_key]);
+			}
 			return $var;
 		}
 	}
@@ -439,9 +444,12 @@ abstract class XF_Db_Table_Abstract
 	{
 		//用于区分是否要执行当前对象
 		if ($associateName !== null )
+		{
 			$methodName .= '$'.$associateName;
-		if (in_array('init'.$methodName, $this->_init_auto_execute_methods))
-			unset($this->_init_auto_execute_methods['init'.$methodName]);
+		}
+			
+		unset($this->_init_auto_execute_methods['init'.$methodName]);
+		
 		return $this;
 	}
 	
@@ -472,6 +480,22 @@ abstract class XF_Db_Table_Abstract
 	}
 	
 	/**
+	 * 设置字段关联表对象【_setFieldAssociated 方法的公用方式 2014-11-18】
+	 * @see XF_Db_Table_Abstract::_setFieldAssociated
+	 * @param string $name 自定义关联名称
+	 * @param string $field　当前表字段名称  特殊用法 ":fieldName" 表示字段为一个"数组" ，值类似: “43,654,234,2”  逗号分开
+	 * @param string $tableName 需要关联的表对象名称
+	 * @param string $associateFieldName 关联对应表的字段
+	 * @param bool $autoAssociated 是否自动关联，[默认为true]
+	 * @param bool $oneToMany 是否为一对多，如果是一对多，获取出来的资料将是一个数组列表 [默认为false]
+	 * @return XF_Db_Table_Abstract
+	 */
+	public function setFieldAssociated($name, $field, $tableName, $associateFieldName, $autoAssociated = true, $oneToMany = false)
+	{
+		return $this->_setFieldAssociated($name, $field, $tableName, $associateFieldName, $autoAssociated, $oneToMany);
+	}
+	
+	/**
 	 * 设置当前类字段关联对象自己的关联状态
 	 * @param string $name 自定义关联名称
 	 * @param string $objectAssName 关联对象的自这义关联名称
@@ -479,16 +503,18 @@ abstract class XF_Db_Table_Abstract
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
 	 * @param mixed $where 关联额外的字段查询条件。默认为NULL,可以是字符串或数组。
 	 * @param mixed $order 关联的数据的排序设置，默认为NULL，或例如：'id DESC'
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociateObjectAss($name, $objectAssName, $isAuto = true, $size = 20, $where = NULL, $order = NULL)
+	public function setAssociateObjectAss($name, $objectAssName, $isAuto = true, $size = 20, $where = NULL, $order = NULL, $field = '*')
 	{
 		$this->_field_associate_object_asssetting[$name][$objectAssName] = array(
 			'assObjectName' => $this->_field_associateds[$name]['table'],
 			'autoAssociated' => $isAuto,
 			'size' => $size,
 			'where' => $where,
-			'order' => $order
+			'order' => $order,
+			'_field' => $field
 		);
 		return $this;
 	}
@@ -499,13 +525,15 @@ abstract class XF_Db_Table_Abstract
 	 * @param string $objectAssName 关联对象的自这义关联名称
 	 * @param bool $isAuto 是否设置为自动，默认为 true
 	 * @param mixed $size 关联数量。[该设置仅在关联类型(oneToMany)为一对多时有效]
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociateObjectAssOnly($name, $objectAssName, $isAuto = true, $size = NULL)
+	public function setAssociateObjectAssOnly($name, $objectAssName, $isAuto = true, $size = NULL, $field = '*')
 	{
 		$this->_field_associate_object_asssetting[$name][$objectAssName] = array(
 			'assObjectName' => $this->_field_associateds[$name]['table'],
-			'autoAssociated' => $isAuto
+			'autoAssociated' => $isAuto,
+			'_field' => $field
 		);
 		
 		if (is_numeric($size))
@@ -521,9 +549,10 @@ abstract class XF_Db_Table_Abstract
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
 	 * @param mixed $where 关联额外的字段查询条件。默认为NULL,可以是字符串或数组。
 	 * @param mixed $order 关联的数据的排序设置，默认为NULL，或例如：'id DESC'
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociatedAuto($name, $size = 20, $where = NULL, $order = NULL)
+	public function setAssociatedAuto($name, $size = 20, $where = NULL, $order = NULL, $field = '*')
 	{
 		if (isset($this->_field_associateds[$name]))
 		{
@@ -531,6 +560,7 @@ abstract class XF_Db_Table_Abstract
 			$this->_field_associateds[$name]['size'] = $size;
 			$this->_field_associateds[$name]['where'] = $where;
 			$this->_field_associateds[$name]['order'] = $order;
+			$this->_field_associateds[$name]['_field'] = $field;
 		}
 		return $this;
 	}
@@ -539,13 +569,15 @@ abstract class XF_Db_Table_Abstract
 	 * 设置一个关联为自动状态 【无法修改查询数量、条件、排序】
 	 * @param string $name 自定义关联名称
 	 * @param mixed $size 关联数量。[该设置仅在关联类型(oneToMany)为一对多时有效]
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociatedAutoOnly($name, $size = NULL)
+	public function setAssociatedAutoOnly($name, $size = NULL, $field = '*')
 	{
 		if (isset($this->_field_associateds[$name]))
 		{
 			$this->_field_associateds[$name]['autoAssociated'] = true;
+			$this->_field_associateds[$name]['_field'] = $field;
 			if (is_numeric($size))
 			{
 				$this->_field_associateds[$name]['size'] = $size;
@@ -561,9 +593,10 @@ abstract class XF_Db_Table_Abstract
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
 	 * @param mixed $where 关联额外的字段查询条件。默认为NULL,可以是字符串或数组。
 	 * @param mixed $order 关联的数据的排序设置，默认为NULL，或例如：'id DESC'
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return XF_Db_Table_Abstract
 	 */
-	public function setAssociatedManual($name, $size = false, $where = NULL, $order = NULL)
+	public function setAssociatedManual($name, $size = false, $where = NULL, $order = NULL, $field = '*')
 	{
 		if (isset($this->_field_associateds[$name]))
 		{
@@ -571,6 +604,7 @@ abstract class XF_Db_Table_Abstract
 			$this->_field_associateds[$name]['size'] = $size;
 			$this->_field_associateds[$name]['where'] = $where;
 			$this->_field_associateds[$name]['order'] = $order;
+			$this->_field_associateds[$name]['_field'] = $field;
 		}
 		return $this;
 	}
@@ -645,6 +679,48 @@ abstract class XF_Db_Table_Abstract
 	public function getFieldAssociateObjectAssSetting()
 	{
 		return $this->_field_associate_object_asssetting;
+	}
+	
+	/**
+	 * 清除手动执行的关联设置
+	 * @access public
+	 * @return void
+	 */
+	public function cleanManualFieldAssociateSetting()
+	{
+		foreach ($this->_field_associateds as $k => $as)
+		{
+			if($as['autoAssociated'] !== true)
+			{
+				unset($this->_field_associateds[$k]);
+			}
+		}
+		if (count($this->_field_associateds) == 0)
+		{
+			unset($this->_field_associateds);
+		}
+		foreach ($this->_field_associate_object_asssetting as $k => $as)
+		{
+			foreach ($as as $j => $val)
+			{
+				if ($this->_field_associate_object_asssetting[$k][$j]['autoAssociated'] !== true)
+				{
+					unset($this->_field_associate_object_asssetting[$k][$j]['autoAssociated']);
+				}
+			}
+		}
+		if (count($this->_field_associate_object_asssetting) == 0)
+		{
+			unset($this->_field_associate_object_asssetting);
+		}
+		if (count($this->_init_auto_execute_methods) == 0)
+		{
+			unset($this->_init_auto_execute_methods);
+		}
+		if (count($this->_init_auto_execute_methods) == 0)
+		{
+			unset($this->_init_auto_execute_methods);
+		}
 	}
 	
 	/**
@@ -725,9 +801,10 @@ abstract class XF_Db_Table_Abstract
 	 * @param mixed $size 关联数量。默认为20，如果为false将关联所有数据[该设置仅在关联类型(oneToMany)为一对多时有效]
 	 * @param mixed $where 关联额外的字段查询条件。默认为NULL,可以是字符串或数组。
 	 * @param mixed $order 关联的数据的排序设置，默认为NULL，或例如：'id DESC'
+	 * @param string $field 关联的数据要查询的字段，默认为“*”，或例如：'id,name'
 	 * @return mixed
 	 */
-	public function selectAssociated($name, $size = 20,$where = null, $order = null)
+	public function selectAssociated($name, $size = 20, $where = null, $order = null, $field = '*')
 	{
 		if (empty($this->_field_associateds[$name]))
 			return false;
@@ -753,6 +830,13 @@ abstract class XF_Db_Table_Abstract
 			//还原设置
 			unset($this->_field_associateds[$name]['size']);
 		}
+		
+		if (isset($this->_field_associateds[$name]['_field']))
+		{
+			$field = $this->_field_associateds[$name]['_field'];
+			//还原设置
+			unset($this->_field_associateds[$name]['_field']);
+		}
 
 		$tableName = $this->_field_associateds[$name]['table'];
 	   	$table = new $tableName();
@@ -773,20 +857,20 @@ abstract class XF_Db_Table_Abstract
 	   						{
 	   							if (!empty($mval['where']))
 	   							{
-	   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order']);
+	   								$table->setAssociatedAuto($mk, $mval['size'], $mval['where'], $mval['order'], $mval['_field']);
 	   							}
 	   							else
 	   							{
-	   								$table->setAssociatedAutoOnly($mk, $mval['size']);
+	   								$table->setAssociatedAutoOnly($mk, $mval['size'], $mval['_field']);
 	   							}
 	   						}
 	   						elseif (!empty($mval['where']))
 	   						{
-	   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order']);
+	   							$table->setAssociatedManual($mk, $mval['size'], $mval['where'], $mval['order'], $mval['_field']);
 	   						}
 	   						else
 	   						{
-	   							$table->setAssociatedManualOnly($mk, $mval['size']);
+	   							$table->setAssociatedManualOnly($mk, $mval['size'], $mval['_field']);
 	   						}
 	   					}
 	   				}
@@ -834,7 +918,7 @@ abstract class XF_Db_Table_Abstract
 	   	if (!is_array($fieldValues))	
 	   		return false;
 	   	$fieldValues = array_values($fieldValues);
-	    $select = $table->getTableSelect()->setWhereIn($this->_field_associateds[$name]['associateField'], $fieldValues);
+	    $select = $table->getTableSelect()->setFindField($field)->setWhereIn($this->_field_associateds[$name]['associateField'], $fieldValues);
 		$select->appendWhere($where)->setOrder($order);
 		//如果是一对多的查询
 		if ($this->_field_associateds[$name]['oneToMany'] === true)
@@ -879,7 +963,7 @@ abstract class XF_Db_Table_Abstract
 	 * @return mixed
 	 */
 	public function update($validate = true)
-	{	
+	{
 		$data = $this->_result_array;
 		$this->getFormData($this->toArray(), false);
 		$this->_validateAllData($validate, false);
@@ -920,7 +1004,11 @@ abstract class XF_Db_Table_Abstract
 				foreach ($dbResultArray as $key => $val)
 				{
 					if (array_key_exists($key, $data) && $data[$key] === $val)
+					{
 						unset($data[$key]);
+						//同时删除不需要验证的字段规则
+						$this->getFieldValidateRule()->removeFieldRule($key);
+					}
 				}
 			}
 		}
@@ -950,8 +1038,10 @@ abstract class XF_Db_Table_Abstract
 	{
 		//获取表单数据
 		if(empty($data))
+		{
 			$data = XF_Controller_Request_Http::getInstance()->getPost();
-	 	
+		}
+
 		//开始检测字段缓存
 		$this->_makeCacheTableFields();
 		//过滤表单提交的数据

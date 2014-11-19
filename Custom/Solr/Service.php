@@ -1182,7 +1182,7 @@ class Apache_Solr_Service
 		$etime = microtime(true);
 		if (XF_Config::getInstance()->getSaveDebug())
 		{
-			$str = $this->_path.' : '.urldecode($queryString).' '.sprintf ("%.5f",($etime - $stime)).'s';
+			$str = $this->_host.' '.$this->_path.' : '.urldecode($queryString).' '.sprintf ("%.5f",($etime - $stime)).'s';
 			if ($etime - $stime > 0.5)
 				$str = '<font style="color:red">'.$str.'</font>';
 			XF_DataPool::getInstance()->addList('Solrs', $str);

@@ -76,28 +76,58 @@ abstract class XF_Controller_Easy implements XF_Controller_Interface
 			throw new XF_Controller_Exception('Controller instance invalid!');
 	}
 	
-	public function getParam($key , $default = NULL)
-	{
-		return $this->_request->getParam($key, $default);
-	}
-
-	public function getParamNumber($key, $default = 0)
+	public function getParam($key , $default = NULL, Array $replace = NULL)
 	{
 		$val = $this->_request->getParam($key, $default);
-		if ($default == $val) 
+		if ($val === $default)
+		{
+			return $val;
+		}
+		if (!is_array($replace))
+		{
+			return $val;
+		}
+		foreach ($replace as $k => $v)
+		{
+			if ($val == $k)
+			{
+				$val = $v;
+				break;
+			}
+		}
+		return $val;
+	}
+	
+
+	public function getParamNumber($key, $default = 0, Array $replace = NULL)
+	{
+		$val = $this->_request->getParam($key, $default);
+		if ($val === $default) 
 		{
 			return $val;
 		}
 		if (is_numeric($val))
 		{
 			$tmp = explode('.', $val);
-			if (strlen($tmp[0]) > 14)
+			if (strlen($tmp[0]) < 14)
 			{
-				return $val;
+				$val = floatval($val);
 			}
-			return floatval($val);
 		}
-		return $default;
+		
+		if (!is_array($replace))
+		{
+			return $val;
+		}
+		foreach ($replace as $k => $v)
+		{
+			if ($val == $k)
+			{
+				$val = $v;
+				break;
+			}
+		}
+		return $val;
 	}
 	
 	public function getParams()

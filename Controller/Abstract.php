@@ -156,6 +156,7 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 			call_user_func(array($this->_controller, $method));
 			$plugins->postAction($this->_request);
 			$this->_render();
+			$plugins->postOutput();
 			return;
 		}
 	
@@ -257,13 +258,31 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	/**
 	 * 获取参数值
 	 * @access public
-	 * @param string $key
-	 * @param mixed $default
+	 * @param string $key 参数名称
+	 * @param mixed $default 如果该参数不存在，需要返回的值，默认为 NULL
+	 * @param array $replace 替换值 【默认为NULL，不设置】
 	 * @return mixed
 	 */
-	public function getParam($key , $default = NULL)
+	public function getParam($key , $default = NULL, Array $replace = NULL)
 	{
-		return $this->_request->getParam($key, $default);
+		$val = $this->_request->getParam($key, $default);
+		if ($val === $default)
+		{
+			return $val;
+		}
+		if (!is_array($replace))
+		{
+			return $val;
+		}
+		foreach ($replace as $k => $v)
+		{
+			if ($val == $k)
+			{
+				$val = $v;
+				break;
+			}
+		}
+		return $val;
 	}
 	
 	/**
@@ -271,24 +290,38 @@ abstract class XF_Controller_Abstract implements XF_Controller_Interface
 	 * @access public
 	 * @param string $key 参数名称
 	 * @param number $default 如果该参数不存在，需要返回的值，默认为 0
+	 * @param array $replace  替换值 【默认为NULL，不设置】
+	 * @return mixed
 	 */
-	public function getParamNumber($key, $default = 0)
+	public function getParamNumber($key, $default = 0, Array $replace = NULL)
 	{
 		$val = $this->_request->getParam($key, $default);
-		if ($default == $val) 
+		if ($val === $default) 
 		{
 			return $val;
 		}
 		if (is_numeric($val))
 		{
 			$tmp = explode('.', $val);
-			if (strlen($tmp[0]) > 14)
+			if (strlen($tmp[0]) < 14)
 			{
-				return $val;
+				$val = floatval($val);
 			}
-			return floatval($val);
 		}
-		return $default;
+		
+		if (!is_array($replace))
+		{
+			return $val;
+		}
+		foreach ($replace as $k => $v)
+		{
+			if ($val == $k)
+			{
+				$val = $v;
+				break;
+			}
+		}
+		return $val;
 	}
 	
 	/**

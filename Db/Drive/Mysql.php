@@ -73,9 +73,9 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 	 * @param int $ofsset 偏移量
 	 * @return mixed
 	 */
-	public function select($table, $field = null, $where = null, $order = null, $size = 20, $ofsset = 0)
+	public function select($table, $field = null, $where = null, $order = null, $group = null, $size = 20, $ofsset = 0)
 	{
-		$query = $this->_getSQL($table, $field, $where, $order, $size, $ofsset);
+		$query = $this->_getSQL($table, $field, $where, $order, $group, $size, $ofsset);
 		return $this->execute($query, true);
 	}
 	
@@ -228,7 +228,17 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 		{
 			echo $query.'<br/>';
 		}
-
+		
+		//多次查询相同的SQL时只执行一次。
+		if (XF_DataPool::getInstance()->get('CLOSE_SQL_DATA_CACHE') == false)
+		{
+			$data = XF_DataPool::getInstance()->get('SQL_DATA');
+			if (is_array($data) && isset($data[md5($query)]))
+			{
+				return $data[md5($query)];
+			}
+		}
+		
 		$stime = microtime(true);
 		$this->_connection();
 		$result = mysql_query($query, $this->_db_connection);
@@ -260,7 +270,13 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 		
 		if ($is_select == true && strpos(strtolower(trim($query)), 'select') === 0)
 		{
-			return $this->_getResultArray($result);
+			$result = $this->_getResultArray($result);
+			//添加临时缓存
+			if (XF_DataPool::getInstance()->get('CLOSE_SQL_DATA_CACHE') == false)
+			{
+				$data[md5($query)] = $result;
+				XF_DataPool::getInstance()->add('SQL_DATA', $data);
+			}
 		}
 			
 		return $result;
@@ -275,9 +291,9 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 	 * @param int $size 数量
 	 * @param int $ofsset 偏移量
 	 */
-	public function count($table, $field = null, $where = null, $order = null, $size = 20, $ofsset = 0)
+	public function count($table, $field = null, $where = null, $order = null, $group = null, $size = 20, $ofsset = 0)
 	{
-		$query = $this->_getSQL($table, $field, $where, $order, $size, $ofsset, true);
+		$query = $this->_getSQL($table, $field, $where, $order, $group, $size, $ofsset, true);
 		return $this->execute($query, true);
 	}
 	
@@ -297,7 +313,7 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 	 * @param bool $rowCount 是否为查询总数[对大数据量下进行优化]
 	 * @return string SQL语句
 	 */
-	private function _getSQL($table, $field = null, $where = null, $order = null, $size = 20, $ofsset = 0, $rowCount = false)
+	private function _getSQL($table, $field = null, $where = null, $order = null, $group = null, $size = 20, $ofsset = 0, $rowCount = false)
 	{
 		$field == null ? $field = '*' : $field;
 		$rowCount == true ? $field = 'count(*) as count':'';
@@ -309,12 +325,40 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 			$ofsset == null ? $ofsset = 0 : $ofsset;
 		}
 		
-		$sql = 'SELECT '.$field.' FROM `'.$this->_db_name.'`.`'.$table.'`'.$where.$order;
+		$sql = 'SELECT '.$field.' FROM `'.$this->_db_name.'`.`'.$table.'`'.$where;
+		if (is_string($group) && $group !='')
+		{
+			if (is_string($order) && $order != '')
+			{
+				//先排序？
+				if (strpos($group, '#GROUP') !== false)
+				{
+					$sql = 'SELECT '.$field.' FROM ('.$sql.' '.$order.') AS XF_NewTableGroup '.str_replace('#GROUP', 'GROUP', $group);
+				}
+				else 
+				{
+					$sql .= $group.$order;
+				}
+			}
+			else
+			{
+				$sql .= $group;
+			}
+		}
+		else
+		{
+			$sql .= $order;
+		}
 		if ($size !== false && $ofsset !== false)
 		{
 			$sql.= ' LIMIT '.$ofsset.','.$size;
 		}
-			
+		
+		//如果是查询行数，并且是分组查询，则需要再次查询count
+		if ($rowCount == true && $group != null)
+		{
+				$sql = 'SELECT count(*) as count FROM ('.$sql.') AS XF_NewTableGroupCount';
+		}
 		return $sql;
 	}
 	
@@ -330,9 +374,9 @@ class XF_Db_Drive_Mysql extends XF_Db_Drive_Abstract
 	 * @param bool $rowCount 是否为查询总数
 	 * @return string
 	 */
-	public function getSql($table, $field = null, $where = null, $order = null, $size = 20, $offset = 0, $rowCount = false)
+	public function getSql($table, $field = null, $where = null, $order = null,  $group = null, $size = 20, $offset = 0, $rowCount = false)
 	{
-		return $this->_getSQL($table, $field, $where, $order, $size, $offset, $rowCount);
+		return $this->_getSQL($table, $field, $where, $order, $group, $size, $offset, $rowCount);
 	}
 	
 	/**

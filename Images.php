@@ -61,45 +61,38 @@ class XF_Images
 	}
 	
 	
-	public static function newVerify()
+	public static function newVerify($width = 60, $height = 25)
 	{
 		
-		mt_srand((double)microtime() * 1000000);
-		$seccode = sprintf('%04d', mt_rand(0, pow(10, 4) - 1));
-		$session = new XF_Session('XF_ImageVerify');
-		$session->write(strtolower($seccode));
-		$im = imagecreate(62, 25);
+		$im = imagecreate($width, $height);
 		$backgroundcolor = imagecolorallocate ($im, 255, 255, 255);
 		
-		$numorder = array(1, 2, 3, 4);
-		shuffle($numorder);
-		$numorder = array_flip($numorder);
-		
-		for($i = 1; $i <= 4; $i++) {
-			$imcodefile = '../images/number'.$seccode[$numorder[$i]].'.gif';
-			$x = $numorder[$i] * 13 + mt_rand(0, 4) - 2;
-			$y = mt_rand(0, 3);
-			$imcode = imagecreatefromgif($imcodefile);
-			$data = getimagesize($imcodefile);
-			imagecolorset($imcode, 0 ,mt_rand(50, 255), mt_rand(50, 128), mt_rand(50, 255));
-			imagecopyresized($im, $imcode, $x, $y, 0, 0, $data[0] + mt_rand(0, 6) - 3, $data[1] + mt_rand(0, 6) - 3, $data[0], $data[1]);
-		}
-		
-		$linenums = mt_rand(10, 32);
-		for($i=0; $i <= $linenums; $i++) {
-			$linecolor = imagecolorallocate($im, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
-			$linex = mt_rand(0, 62);
-			$liney = mt_rand(0, 25);
-			imageline($im, $linex, $liney, $linex + mt_rand(0, 4) - 2, $liney + mt_rand(0, 4) - 2, $linecolor);
-		}
+		$mCheckCodeNum=4;
+		$mCheckCode = '';
+		for ($i=0; $i<$mCheckCodeNum; $i++)
+		{
+			$mCheckCode .= strtoupper(chr(rand(97,122)));
+		} 
+		 
+		$session = new XF_Session('XF_ImageVerify');
+		$session->write(strtolower($mCheckCode));
 		
 		for($i=0; $i <= 64; $i++) {
-			$pointcolor = imagecolorallocate($im, mt_rand(50, 255), mt_rand(50, 255), mt_rand(50, 255));
-			imagesetpixel($im, mt_rand(0, 62), mt_rand(0, 25), $pointcolor);
+			$pointcolor = imagecolorallocate($im, mt_rand(1, 155), mt_rand(0, 200), mt_rand(1, 155));
+			imagesetpixel($im, mt_rand(0, $width-1), mt_rand(0, $height-1), $pointcolor);
 		}
 		
-		$bordercolor = imagecolorallocate($im , 150, 150, 150);
-		imagerectangle($im, 0, 0, 61, 24, $bordercolor);
+		$snowflake_size = 5;
+		for ($i=0;$i<$mCheckCodeNum;$i++)
+		{
+			$font_color = imagecolorallocate($im, mt_rand(1, 155), mt_rand(1, 200) ,100);
+			$x = floor($width/$mCheckCodeNum)*$i+3;
+			$y = rand(0,$height-15);
+			imagechar ($im, $snowflake_size, $x, $y, $mCheckCode[$i], $font_color);
+		}
+		
+		$bordercolor = imagecolorallocate($im , 188, 188, 188);
+		imagerectangle($im, 0, 0, $width-1, $height-1, $bordercolor);
 		
 		header('Content-type: image/png');
 		imagepng($im);

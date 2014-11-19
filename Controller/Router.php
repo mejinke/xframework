@@ -51,6 +51,12 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 	private $_close_all_module = false;
 	
 	/**
+	 * 开启的模块
+	 * @var array
+	 */
+	private $_open_modules = array();
+	
+	/**
 	 * 当前请求的HTTP HOST
 	 * @var string
 	 */
@@ -166,6 +172,22 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 		$this->_close_all_module = true;
 		return $this;
 	}
+	
+	/**
+	 * 开启模块
+	 * @param string $moduleName 模块名称
+	 * @return XF_Controller_Router
+	 */
+	public function openModule($moduleName)
+	{
+		$m = (string)$moduleName;
+		$this->_open_modules[strtolower($m)] = $m;
+		if (isset($this->_close_modules[strtolower($m)]))
+		{
+			unset($this->_close_modules[strtolower($m)]);
+		}
+		return $this;
+	}
 
 	/**
 	 * 启动路由器
@@ -196,7 +218,7 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 		{
 			throw new XF_Controller_Router_Exception('404 Not found!', 404);
 		}
-		if (strtolower($this->_request->getModule()) != 'default' && $this->_close_all_module === true)
+		if (strtolower($this->_request->getModule()) != 'default' && $this->_close_all_module === true && !isset($this->_open_modules[strtolower($this->_request->getModule())]))
 		{
 			throw new XF_Controller_Router_Exception('The module is close', 404);
 		}
@@ -413,6 +435,9 @@ class XF_Controller_Router extends XF_Controller_Router_Abstract
 			foreach ($tmp as $t)
 			{
 				$_tmp = explode('=', $t);
+				//GET 数组参数
+				$_tmp[0] = str_replace('%5B%5D', '[]', $_tmp[0]);
+				$_tmp[0] = str_replace('%5b%5d', '[]', $_tmp[0]);
 				$this->_request->setParam($_tmp[0], isset($_tmp[1]) ? urldecode($_tmp[1]) : NULL);
 			}
 		}

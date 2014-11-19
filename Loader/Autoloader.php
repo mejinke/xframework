@@ -112,7 +112,7 @@ class XF_Loader_Autoloader
 				$appName = substr($tmp[0], 1);
 				
 				$filename = str_replace($php.'.php',end($tmp).'.php', strtolower(implode($tmp, '/')).'.php');
-				$filename = str_replace(strtolower($appName),$appName, $filename);
+				$filename = str_replace(strtolower($appName.'/models'),$appName.'/models', $filename);
 				$filename = APPLICATION_PATH.'/modules/'.$filename;
 			}
       	}

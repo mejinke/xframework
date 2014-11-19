@@ -57,7 +57,7 @@ class XF_View_Helper_Header_Title
 	 */
 	public function setLinkSymbol($str)
 	{
-		$this->_linkSymbol = XF_String::text($str);
+		$this->_linkSymbol = XF_String::text($str, false);
 		return $this;
 	}
 	
@@ -70,7 +70,7 @@ class XF_View_Helper_Header_Title
 	 */
 	public function appendTitle($str)
 	{
-		$this->_title .= $this->_linkSymbol.XF_String::text($str);
+		$this->_title .= $this->_linkSymbol.XF_String::text($str, false);
 		return $this;
 	}
 	
@@ -82,7 +82,7 @@ class XF_View_Helper_Header_Title
 	 */
 	public function prependTitle($str)
 	{
-		$this->_title = XF_String::text($str).$this->_linkSymbol.$this->_title;
+		$this->_title = XF_String::text($str, false).$this->_linkSymbol.$this->_title;
 		return $this;
 	}
 	
